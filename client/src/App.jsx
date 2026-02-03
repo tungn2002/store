@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './App.css';
+import Cart from './components/Cart';
 import Topbar from './components/Topbar';
 import Header from './components/Header';
 import Hero from './components/Hero';
@@ -7,6 +8,8 @@ import HomeCategories from './components/HomeCategories';
 import ProductGrid from './components/ProductGrid';
 import CategoryView from './components/CategoryView';
 import ProductDetail from './components/ProductDetail';
+import UserProfile from './components/UserProfile';
+import Favorites from './components/Favorites';
 import Footer from './components/Footer';
 
 const products = [
@@ -52,6 +55,12 @@ function App() {
         return <CategoryView categoryName={selectedCategory} products={products.concat(products)} onViewDetail={viewDetail} toggleView={toggleView} />;
       case 'detail':
         return <ProductDetail product={selectedProduct} toggleView={toggleView} />;
+      case 'profile':
+        return <UserProfile onClose={() => toggleView('home')} />;
+      case 'favorites':
+        return <Favorites toggleView={toggleView} />;
+      case 'cart':
+        return <Cart toggleView={toggleView} />;
       default:
         return null;
     }

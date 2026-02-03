@@ -21,10 +21,11 @@ const Header = ({ currentView, toggleView }) => {
 
         <div className="flex items-center space-x-5 text-xl">
           <a href="#" className="hover:text-red-600"><i className="fas fa-search"></i></a>
-          <a href="#" className="hover:text-red-600 hidden md:inline"><i className="far fa-user"></i></a>
-          <a href="#" className="relative hover:text-red-600">
+          <a href="javascript:void(0)" onClick={() => toggleView('profile')} className="hover:text-red-600 hidden md:inline cursor-pointer"><i className="far fa-user"></i></a>
+          <a href="javascript:void(0)" onClick={() => toggleView('favorites')} className="hover:text-red-600 hidden md:inline cursor-pointer"><i className="far fa-heart"></i></a>
+          <a href="javascript:void(0)" onClick={() => toggleView('cart')} className="relative hover:text-red-600 cursor-pointer">
             <i className="fas fa-shopping-cart"></i>
-            <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">0</span>
+            <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">2</span>
           </a>
         </div>
       </div>
