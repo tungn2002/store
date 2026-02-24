@@ -10,6 +10,7 @@ import CategoryView from './components/CategoryView';
 import ProductDetail from './components/ProductDetail';
 import UserProfile from './components/UserProfile';
 import Favorites from './components/Favorites';
+import Login from './components/Login';
 import Footer from './components/Footer';
 
 const products = [
@@ -61,6 +62,8 @@ function App() {
         return <Favorites toggleView={toggleView} />;
       case 'cart':
         return <Cart toggleView={toggleView} />;
+      case 'login':
+        return <Login toggleView={toggleView} />;
       default:
         return null;
     }
@@ -68,7 +71,7 @@ function App() {
 
   return (
     <div className="bg-gray-50 text-gray-800">
-      <Topbar />
+      <Topbar toggleView={toggleView} />
       <Header currentView={currentView} toggleView={toggleView} />
       {renderContent()}
       <Footer />

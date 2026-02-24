@@ -183,6 +183,147 @@
   background-color: #5a6268;
 }
 
+.btn-detail {
+  background-color: #17a2b8;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.btn-detail:hover {
+  background-color: #138496;
+}
+
+.btn-cancel-order {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+
+.btn-cancel-order:hover {
+  background-color: #bd2130;
+}
+
+/* Order Detail Popup */
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.popup-content {
+  background-color: white;
+  border-radius: 8px;
+  max-width: 700px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+  border-radius: 8px 8px 0 0;
+}
+
+.popup-header h3 {
+  margin: 0;
+  color: #333;
+}
+
+.popup-close {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #666;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.popup-close:hover {
+  background-color: #e9ecef;
+  color: #333;
+}
+
+.popup-body {
+  padding: 1.5rem;
+}
+
+.order-detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+.order-detail-table th,
+.order-detail-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border: 1px solid #dee2e6;
+}
+
+.order-detail-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+}
+
+.order-detail-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.order-detail-table tbody tr:hover {
+  background-color: #f5f5f5;
+}
+
+.order-note {
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  color: #856404;
+}
+
+.order-total {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 4px;
+  text-align: right;
+  font-size: 1.1rem;
+  color: #dc3545;
+}
+
 /* Orders Table Styles - Excel-like appearance */
 .orders-container h3 {
   margin-top: 0;
@@ -234,18 +375,8 @@
   font-weight: 500;
 }
 
-.status.đang-xử-lý {
+.status.đang-chờ {
   color: #ffc107;
-  font-weight: 500;
-}
-
-.status.đã-hủy {
-  color: #dc3545;
-  font-weight: 500;
-}
-
-.status.giao-hàng {
-  color: #17a2b8;
   font-weight: 500;
 }
 

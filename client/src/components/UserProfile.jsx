@@ -153,6 +153,10 @@ const PersonalInfoForm = () => {
           </div>
         </div>
 
+        <div className="form-actions">
+          <button type="submit" className="btn-save">Lưu thay đổi</button>
+        </div>
+
         <div className="password-section">
           <h4>Thay đổi mật khẩu</h4>
           <div className="form-row">
@@ -191,11 +195,10 @@ const PersonalInfoForm = () => {
               placeholder="Nhập lại mật khẩu mới"
             />
           </div>
-        </div>
 
-        <div className="form-actions">
-          <button type="submit" className="btn-save">Lưu thay đổi</button>
-          <button type="button" className="btn-cancel">Hủy</button>
+          <div className="form-actions">
+            <button type="submit" className="btn-save">Lưu thay đổi</button>
+          </div>
         </div>
       </form>
     </div>
@@ -204,13 +207,81 @@ const PersonalInfoForm = () => {
 
 // Orders Table Component
 const OrdersTable = () => {
+  const [showOrderDetailPopup, setShowOrderDetailPopup] = useState(null);
+
   const orders = [
-    { id: 1, date: '2023-01-15', total: 1500000, status: 'Hoàn thành' },
-    { id: 2, date: '2023-02-20', total: 2300000, status: 'Đang xử lý' },
-    { id: 3, date: '2023-03-10', total: 850000, status: 'Đã hủy' },
-    { id: 4, date: '2023-04-05', total: 3200000, status: 'Giao hàng' },
-    { id: 5, date: '2023-05-12', total: 1750000, status: 'Hoàn thành' }
+    {
+      id: 1,
+      date: '2023-01-15',
+      total: 1500000,
+      status: 'Hoàn thành',
+      note: 'Giao hàng giờ hành chính',
+      products: [
+        { name: 'Nike Air Max 90 Red Edition', size: '42', color: 'Red', quantity: 1, price: 1250000 },
+        { name: 'Adidas Forum Low Classic White', size: '40', color: 'White', quantity: 1, price: 250000 }
+      ]
+    },
+    {
+      id: 2,
+      date: '2023-02-20',
+      total: 2300000,
+      status: 'Đang chờ',
+      note: 'Khách yêu cầu gọi trước khi giao',
+      products: [
+        { name: 'Nike Dunk Low Retro Panda', size: '43', color: 'Black/White', quantity: 1, price: 2300000 }
+      ]
+    },
+    {
+      id: 3,
+      date: '2023-03-10',
+      total: 850000,
+      status: 'Hoàn thành',
+      note: '',
+      products: [
+        { name: 'Vans Old Skool Classic Black', size: '39', color: 'Black', quantity: 1, price: 850000 }
+      ]
+    },
+    {
+      id: 4,
+      date: '2023-04-05',
+      total: 3200000,
+      status: 'Đang chờ',
+      note: 'Giao tại văn phòng làm việc',
+      products: [
+        { name: 'Nike Air Max 90 Red Edition', size: '42', color: 'Red', quantity: 2, price: 1250000 },
+        { name: 'Adidas Forum Low Classic White', size: '41', color: 'White', quantity: 1, price: 700000 }
+      ]
+    },
+    {
+      id: 5,
+      date: '2023-05-12',
+      total: 1750000,
+      status: 'Hoàn thành',
+      note: '',
+      products: [
+        { name: 'Nike Dunk Low Retro Panda', size: '40', color: 'Black/White', quantity: 1, price: 1750000 }
+      ]
+    }
   ];
+
+  const openOrderDetailPopup = (order) => {
+    setShowOrderDetailPopup(order);
+  };
+
+  const handleCancelOrder = (orderId) => {
+    if (window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) {
+      // Handle cancel order logic here
+      console.log('Cancel order:', orderId);
+      alert('Đã hủy đơn hàng thành công');
+    }
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND'
+    }).format(amount);
+  };
 
   return (
     <div className="orders-container">
@@ -220,8 +291,10 @@ const OrdersTable = () => {
           <tr>
             <th>Mã đơn hàng</th>
             <th>Ngày đặt</th>
+            <th>Sản phẩm</th>
             <th>Tổng tiền</th>
             <th>Trạng thái</th>
+            <th>Hành động</th>
           </tr>
         </thead>
         <tbody>
@@ -229,14 +302,76 @@ const OrdersTable = () => {
             <tr key={order.id}>
               <td>{order.id}</td>
               <td>{order.date}</td>
+              <td>
+                <button
+                  onClick={() => openOrderDetailPopup(order)}
+                  className="btn-detail"
+                >
+                  Chi tiết
+                </button>
+              </td>
               <td>{order.total.toLocaleString('vi-VN')} ₫</td>
               <td className={`status ${order.status.toLowerCase().replace(/\s+/g, '-')}`}>
                 {order.status}
+              </td>
+              <td>
+                {order.status === 'Đang chờ' && (
+                  <button
+                    onClick={() => handleCancelOrder(order.id)}
+                    className="btn-cancel-order"
+                  >
+                    Hủy
+                  </button>
+                )}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {/* Order Detail Popup */}
+      {showOrderDetailPopup && (
+        <div className="popup-overlay" onClick={() => setShowOrderDetailPopup(null)}>
+          <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+            <div className="popup-header">
+              <h3>Chi tiết đơn hàng #{showOrderDetailPopup.id}</h3>
+              <button className="popup-close" onClick={() => setShowOrderDetailPopup(null)}>×</button>
+            </div>
+            <div className="popup-body">
+              <table className="order-detail-table">
+                <thead>
+                  <tr>
+                    <th>Tên sản phẩm</th>
+                    <th>Size</th>
+                    <th>Color</th>
+                    <th>Số lượng</th>
+                    <th>Đơn giá</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {showOrderDetailPopup.products.map((product, index) => (
+                    <tr key={index}>
+                      <td>{product.name}</td>
+                      <td>{product.size}</td>
+                      <td>{product.color}</td>
+                      <td>{product.quantity}</td>
+                      <td>{formatCurrency(product.price)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {showOrderDetailPopup.note && (
+                <div className="order-note">
+                  <strong>Ghi chú:</strong> {showOrderDetailPopup.note}
+                </div>
+              )}
+              <div className="order-total">
+                <strong>Tổng cộng:</strong> {formatCurrency(showOrderDetailPopup.total)}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
