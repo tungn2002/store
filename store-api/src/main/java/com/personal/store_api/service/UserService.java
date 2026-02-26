@@ -1,6 +1,5 @@
 package com.personal.store_api.service;
 
-import com.personal.store_api.constant.RoleConstants;
 import com.personal.store_api.entity.Role;
 import com.personal.store_api.repository.RoleRepository;
 import lombok.AccessLevel;
@@ -21,7 +20,7 @@ public class UserService {
 
     public Set<Role> getDefaultRoles() {
         Set<Role> roles = new HashSet<>();
-        roleRepository.findById(RoleConstants.USER_ROLE)
+        roleRepository.findById("USER")
                 .ifPresent(roles::add);
         return roles;
     }

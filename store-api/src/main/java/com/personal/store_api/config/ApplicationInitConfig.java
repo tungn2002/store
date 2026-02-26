@@ -1,6 +1,5 @@
 package com.personal.store_api.config;
 
-import com.personal.store_api.constant.RoleConstants;
 import com.personal.store_api.entity.Role;
 import com.personal.store_api.entity.User;
 import com.personal.store_api.repository.RoleRepository;
@@ -18,27 +17,28 @@ import java.util.HashSet;
 
 @Configuration
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 @Slf4j
 public class ApplicationInitConfig {
-    PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
 
     static final String ADMIN_NAME = "admin";
     static final String ADMIN_EMAIL = "admin@example.com";
     static final String ADMIN_PASSWORD = "admin";
 
     @Bean
-    ApplicationRunner applicationRunner(UserRepository userRepository, RoleRepository roleRepository) {
+    ApplicationRunner applicationRunner() {
         log.info("Initializing application.....");
         return args -> {
             if (userRepository.findByEmail(ADMIN_EMAIL).isEmpty()) {
                 roleRepository.save(Role.builder()
-                        .name(RoleConstants.USER_ROLE)
+                        .name("USER")
                         .displayName("User")
                         .build());
 
                 Role adminRole = roleRepository.save(Role.builder()
-                        .name(RoleConstants.ADMIN_ROLE)
+                        .name("ADMIN")
                         .displayName("Admin")
                         .build());
 
