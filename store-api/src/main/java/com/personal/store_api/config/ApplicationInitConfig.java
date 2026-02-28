@@ -1,8 +1,10 @@
 package com.personal.store_api.config;
 
 import com.personal.store_api.entity.Role;
+import com.personal.store_api.entity.StoreSettings;
 import com.personal.store_api.entity.User;
 import com.personal.store_api.repository.RoleRepository;
+import com.personal.store_api.repository.StoreSettingsRepository;
 import com.personal.store_api.repository.UserRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ public class ApplicationInitConfig {
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final StoreSettingsRepository storeSettingsRepository;
 
     static final String ADMIN_NAME = "admin";
     static final String ADMIN_EMAIL = "admin@example.com";
@@ -55,6 +58,17 @@ public class ApplicationInitConfig {
                 userRepository.save(user);
                 log.warn("admin user has been created with default password: admin, please change it");
             }
+
+            // Initialize store settings if not exists
+            if (storeSettingsRepository.findFirstByOrderByIdAsc().isEmpty()) {
+                StoreSettings settings = StoreSettings.builder()
+                        .name("My Store")
+                        .address("123 Main Street, City, Country")
+                        .build();
+                storeSettingsRepository.save(settings);
+                log.info("Default store settings have been created");
+            }
+
             log.info("Application initialization completed .....");
         };
     }

@@ -1,33 +1,86 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import PageTitle from "../components/Typography/PageTitle";
 import { Label, Input, Button } from "@windmill/react-ui";
+import { getStoreSettings, updateStoreSettings } from "../utils/storeSettingsApi";
+import { useToast } from "../utils/toast";
 
 const Settings = () => {
-  const [storeName, setStoreName] = useState("My Store");
-  const [address, setAddress] = useState("123 Main Street, New York, NY 10001");
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
+  const toast = useToast();
 
-  const handleSubmit = (e) => {
+  const [storeName, setStoreName] = useState("");
+  const [address, setAddress] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Fetch store settings on mount
+  useEffect(() => {
+    const fetchStoreSettings = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          toast.error("Please login to view settings");
+          return;
+        }
+
+        const data = await getStoreSettings(token);
+        setStoreName(data.name || "");
+        setAddress(data.address || "");
+      } catch (err) {
+        toast.error(
+          err.response?.data?.message || "Failed to load store settings"
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStoreSettings();
+  }, [toast]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSaving(true);
-    setSaveSuccess(false);
 
-    // Simulate API call
-    setTimeout(() => {
-      console.log("Store Settings Updated:", {
-        storeName,
-        address,
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please login again");
+        return;
+      }
+
+      await updateStoreSettings(token, {
+        name: storeName.trim(),
+        address: address.trim(),
       });
-      setIsSaving(false);
-      setSaveSuccess(true);
 
-      // Hide success message after 3 seconds
-      setTimeout(() => {
-        setSaveSuccess(false);
-      }, 3000);
-    }, 1000);
+      toast.success("Settings saved successfully!");
+    } catch (err) {
+      const errorMessage =
+        err.response?.data?.message || "Failed to save settings";
+      toast.error(errorMessage);
+
+      // Handle specific validation errors from API
+      if (err.response?.data?.errors) {
+        const apiErrors = err.response.data.errors;
+        apiErrors.forEach((error) => {
+          toast.error(error.defaultMessage || error.message);
+        });
+      }
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="px-6 py-8">
+        <PageTitle>Store Settings</PageTitle>
+        <div className="flex items-center justify-center mt-8">
+          <div className="text-gray-600 dark:text-gray-300">Loading...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-6 py-8">
@@ -64,18 +117,10 @@ const Settings = () => {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="Enter store address"
-                  required
                 />
               </Label>
             </div>
           </div>
-
-          {/* Success Message */}
-          {saveSuccess && (
-            <div className="px-4 py-3 mb-4 text-green-700 bg-green-100 rounded-lg dark:bg-green-800 dark:text-green-100">
-              Settings saved successfully!
-            </div>
-          )}
 
           {/* Save Button */}
           <div className="flex justify-end">
