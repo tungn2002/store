@@ -1,5 +1,6 @@
 import React, { useContext, useState } from "react";
 import { SidebarContext } from "../context/SidebarContext";
+import { useHistory } from "react-router-dom";
 import {
   SearchIcon,
   MoonIcon,
@@ -12,7 +13,6 @@ import {
 } from "../icons";
 import {
   Avatar,
-  Badge,
   Input,
   Dropdown,
   DropdownItem,
@@ -20,21 +20,34 @@ import {
 } from "@windmill/react-ui";
 import { Link } from "react-router-dom";
 import response from "../utils/demo/profileData";
+import { logout } from "../utils/authApi";
 
 function Header() {
   const { mode, toggleMode } = useContext(WindmillContext);
   const { toggleSidebar } = useContext(SidebarContext);
+  const history = useHistory();
 
-  const [isNotificationsMenuOpen, setIsNotificationsMenuOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
-
-  function handleNotificationsClick() {
-    setIsNotificationsMenuOpen(!isNotificationsMenuOpen);
-  }
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   function handleProfileClick() {
     setIsProfileMenuOpen(!isProfileMenuOpen);
   }
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    const token = localStorage.getItem("token");
+    
+    try {
+      await logout(token);
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      localStorage.removeItem("token");
+      history.push("/login");
+      setIsLoggingOut(false);
+    }
+  };
 
   return (
     <header className="z-40 py-4 bg-white shadow-bottom dark:bg-gray-800">
@@ -78,8 +91,8 @@ function Header() {
           {/* <!-- Notifications menu --> */}
           <li className="relative">
             <button
-              className="relative align-middle rounded-md focus:outline-none focus:shadow-outline-purple"
-              onClick={handleNotificationsClick}
+              disabled
+              className="relative align-middle rounded-md focus:outline-none focus:shadow-outline-purple cursor-not-allowed opacity-60"
               aria-label="Notifications"
               aria-haspopup="true"
             >
@@ -90,32 +103,6 @@ function Header() {
                 className="absolute top-0 right-0 inline-block w-3 h-3 transform translate-x-1 -translate-y-1 bg-red-600 border-2 border-white rounded-full dark:border-gray-800"
               ></span>
             </button>
-
-            <Dropdown
-              align="right"
-              isOpen={isNotificationsMenuOpen}
-              onClose={() => setIsNotificationsMenuOpen(false)}
-            >
-              <DropdownItem
-                tag="a"
-                href="/app/chats"
-                className="justify-between"
-              >
-                <span>Messages</span>
-                <Badge type="danger">13</Badge>
-              </DropdownItem>
-              <DropdownItem
-                tag="a"
-                href="/app/orders"
-                className="justify-between"
-              >
-                <span>Sales</span>
-                <Badge type="danger">2</Badge>
-              </DropdownItem>
-              <DropdownItem onClick={() => alert("Alerts!")}>
-                <span>Alerts</span>
-              </DropdownItem>
-            </Dropdown>
           </li>
           {/* <!-- Profile menu --> */}
           <li className="relative">
@@ -148,12 +135,12 @@ function Header() {
                 <OutlineCogIcon className="w-4 h-4 mr-3" aria-hidden="true" />
                 <span>Settings</span>
               </DropdownItem>
-              <DropdownItem onClick={() => alert("Log out!")}>
+              <DropdownItem onClick={handleLogout} disabled={isLoggingOut}>
                 <OutlineLogoutIcon
                   className="w-4 h-4 mr-3"
                   aria-hidden="true"
                 />
-                <span>Log out</span>
+                <span>{isLoggingOut ? 'Logging out...' : 'Log out'}</span>
               </DropdownItem>
             </Dropdown>
           </li>
