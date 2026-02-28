@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import PageTitle from "../components/Typography/PageTitle";
 import { Label, Input, Button, Select } from "@windmill/react-ui";
-import { getProfile, updateProfile } from "../utils/profileApi";
+import { getProfile, updateProfile, changePassword } from "../utils/profileApi";
 import { useToast } from "../utils/toast";
 
 const Profile = () => {
@@ -218,22 +218,17 @@ const Profile = () => {
 
   const handlePasswordChange = (e) => {
     const { name, value } = e.target;
+    
     if (name === "newPassword") {
       setNewPassword(value);
-      // Re-validate confirm password when new password changes
-      if (confirmPassword) {
-        const confirmError = validatePassword("confirmPassword", confirmPassword);
-        setPasswordErrors((prev) => ({ ...prev, confirmPassword: confirmError }));
-      }
-    } else {
-      setPasswordErrors((prev) => ({ ...prev, [name]: "" }));
-      if (name === "confirmPassword") {
-        const error = validatePassword(name, value);
-        setPasswordErrors((prev) => ({ ...prev, [name]: error }));
-      } else {
-        setPasswordErrors((prev) => ({ ...prev, [name]: "" }));
-      }
+    } else if (name === "confirmPassword") {
+      setConfirmPassword(value);
+    } else if (name === "currentPassword") {
+      setCurrentPassword(value);
     }
+    
+    // Clear error when typing
+    setPasswordErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const handlePasswordBlur = (e) => {
@@ -280,9 +275,11 @@ const Profile = () => {
         return;
       }
 
-      // TODO: Implement change password API when available
-      // For now, simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await changePassword(token, {
+        oldPassword: currentPassword,
+        newPassword: newPassword,
+        confirmPassword: confirmPassword,
+      });
 
       toast.success("Password updated successfully!");
       setCurrentPassword("");
@@ -459,16 +456,7 @@ const Profile = () => {
                       currentPassword: "",
                     }));
                   }}
-                  onBlur={(e) => {
-                    if (!e.target.value) {
-                      setPasswordErrors((prev) => ({
-                        ...prev,
-                        currentPassword: "Current password is required",
-                      }));
-                    }
-                  }}
                   placeholder="Enter current password"
-                  required
                 />
               </Label>
               {passwordErrors.currentPassword && (
@@ -489,7 +477,6 @@ const Profile = () => {
                   onChange={handlePasswordChange}
                   onBlur={handlePasswordBlur}
                   placeholder="Enter new password"
-                  required
                 />
               </Label>
               {passwordErrors.newPassword && (
@@ -510,7 +497,6 @@ const Profile = () => {
                   onChange={handlePasswordChange}
                   onBlur={handlePasswordBlur}
                   placeholder="Confirm new password"
-                  required
                 />
               </Label>
               {passwordErrors.confirmPassword && (

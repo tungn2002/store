@@ -38,3 +38,20 @@ export const updateProfile = async (token, profileData) => {
 
   return response.data.result;
 };
+
+/**
+ * Change user password
+ * @param {string} token - JWT token
+ * @param {Object} passwordData - Password data
+ * @param {string} passwordData.oldPassword - Current password
+ * @param {string} passwordData.newPassword - New password
+ * @param {string} passwordData.confirmPassword - Confirm new password
+ * @returns {Promise<void>}
+ */
+export const changePassword = async (token, passwordData) => {
+  await axios.put(`${API_BASE_URL}/change-password`, passwordData, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+};
