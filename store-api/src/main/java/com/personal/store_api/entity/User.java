@@ -33,8 +33,6 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    private String avatar;
-
     @Column(length = 15)
     private String phoneNumber;
 

@@ -9,8 +9,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.validation.BindException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 @Slf4j
@@ -19,13 +25,32 @@ public class GlobalExceptionHandler {
 
     private final MessageUtils messageUtils;
 
-    @ExceptionHandler(value = Exception.class)
-    ResponseEntity<ApiResponse> handlingRuntimeException(RuntimeException exception) {
-        log.error("Exception: ", exception);
-        ApiResponse apiResponse = new ApiResponse();
+    @ExceptionHandler(value = MethodArgumentNotValidException.class)
+    ResponseEntity<ApiResponse> handleValidationException(MethodArgumentNotValidException exception) {
+        List<FieldError> fieldErrors = exception.getBindingResult().getFieldErrors();
+        String message = fieldErrors.stream()
+                .map(error -> error.getField() + ": " + messageUtils.getMessage(error.getDefaultMessage()))
+                .collect(Collectors.joining(", "));
 
-        apiResponse.setCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
-        apiResponse.setMessage(messageUtils.getMessage(ErrorCode.UNCATEGORIZED_EXCEPTION));
+        ApiResponse apiResponse = ApiResponse.builder()
+                .code(ErrorCode.INVALID_KEY.getCode())
+                .message(message)
+                .build();
+
+        return ResponseEntity.badRequest().body(apiResponse);
+    }
+
+    @ExceptionHandler(value = BindException.class)
+    ResponseEntity<ApiResponse> handleBindException(BindException exception) {
+        List<FieldError> fieldErrors = exception.getBindingResult().getFieldErrors();
+        String message = fieldErrors.stream()
+                .map(error -> error.getField() + ": " + messageUtils.getMessage(error.getDefaultMessage()))
+                .collect(Collectors.joining(", "));
+
+        ApiResponse apiResponse = ApiResponse.builder()
+                .code(ErrorCode.INVALID_KEY.getCode())
+                .message(message)
+                .build();
 
         return ResponseEntity.badRequest().body(apiResponse);
     }
@@ -62,5 +87,16 @@ public class GlobalExceptionHandler {
                         .code(errorCode.getCode())
                         .message(messageUtils.getMessage(errorCode))
                         .build());
+    }
+
+    @ExceptionHandler(Exception.class)
+    ResponseEntity<ApiResponse> handlingException(Exception exception) {
+        log.error("Exception: ", exception);
+
+        ApiResponse apiResponse = new ApiResponse();
+        apiResponse.setCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
+        apiResponse.setMessage(messageUtils.getMessage(ErrorCode.UNCATEGORIZED_EXCEPTION));
+
+        return ResponseEntity.badRequest().body(apiResponse);
     }
 }

@@ -13,6 +13,7 @@ public enum ErrorCode {
     UNAUTHENTICATED(1006, "error.unauthenticated", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1007, "error.unauthorized", HttpStatus.FORBIDDEN),
     INVALID_CREDENTIALS(1008, "error.auth.invalid.credentials", HttpStatus.UNAUTHORIZED),
+    USER_NOT_FOUND(1009, "error.user.not.found", HttpStatus.NOT_FOUND),
     ;
 
     private final int code;

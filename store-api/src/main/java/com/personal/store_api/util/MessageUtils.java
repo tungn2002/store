@@ -18,4 +18,12 @@ public class MessageUtils {
                 LocaleContextHolder.getLocale()
         );
     }
+
+    public String getMessage(String messageKey, Object... args) {
+        return messageSource.getMessage(
+                messageKey,
+                args,
+                LocaleContextHolder.getLocale()
+        );
+    }
 }
