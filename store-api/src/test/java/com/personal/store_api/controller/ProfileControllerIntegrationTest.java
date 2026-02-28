@@ -1,6 +1,7 @@
 package com.personal.store_api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.personal.store_api.dto.request.ChangePasswordRequest;
 import com.personal.store_api.dto.request.UpdateProfileRequest;
 import com.personal.store_api.entity.Role;
 import com.personal.store_api.entity.User;
@@ -18,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -67,6 +69,9 @@ public class ProfileControllerIntegrationTest {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     private User testUser;
     private String authToken;
 
@@ -82,7 +87,7 @@ public class ProfileControllerIntegrationTest {
         testUser = User.builder()
                 .name("Test User")
                 .email("test@example.com")
-                .password("{noop}password")
+                .password(passwordEncoder.encode("password"))
                 .phoneNumber("0123456789")
                 .dateOfBirth(LocalDate.of(1990, 1, 1))
                 .gender(Gender.MALE)
@@ -198,6 +203,151 @@ public class ProfileControllerIntegrationTest {
                 .build();
 
         mockMvc.perform(put("/profile")
+                        .header("Authorization", "Bearer " + authToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value(1009))
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    // ==================== CHANGE PASSWORD TESTS ====================
+
+    @Test
+    void testChangePassword_WithValidData_ShouldReturnSuccess() throws Exception {
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .oldPassword("password")
+                .newPassword("newPassword123")
+                .confirmPassword("newPassword123")
+                .build();
+
+        mockMvc.perform(put("/profile/change-password")
+                        .header("Authorization", "Bearer " + authToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000));
+
+        // Verify password was updated
+        User updatedUser = userRepository.findById(testUser.getId()).orElse(null);
+        assert updatedUser != null;
+        assert passwordEncoder.matches("newPassword123", updatedUser.getPassword());
+    }
+
+    @Test
+    void testChangePassword_WithInvalidOldPassword_ShouldReturnError() throws Exception {
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .oldPassword("wrongPassword")
+                .newPassword("newPassword123")
+                .confirmPassword("newPassword123")
+                .build();
+
+        mockMvc.perform(put("/profile/change-password")
+                        .header("Authorization", "Bearer " + authToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(1010))
+                .andExpect(jsonPath("$.message").value("Current password is incorrect"));
+    }
+
+    @Test
+    void testChangePassword_WithNotMatchingPasswords_ShouldReturnError() throws Exception {
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .oldPassword("password")
+                .newPassword("newPassword123")
+                .confirmPassword("differentPassword456")
+                .build();
+
+        mockMvc.perform(put("/profile/change-password")
+                        .header("Authorization", "Bearer " + authToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(1011))
+                .andExpect(jsonPath("$.message").value("New password and confirm password do not match"));
+    }
+
+    @Test
+    void testChangePassword_WithBlankOldPassword_ShouldReturnError() throws Exception {
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .oldPassword("")
+                .newPassword("newPassword123")
+                .confirmPassword("newPassword123")
+                .build();
+
+        mockMvc.perform(put("/profile/change-password")
+                        .header("Authorization", "Bearer " + authToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(1001))
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void testChangePassword_WithBlankNewPassword_ShouldReturnError() throws Exception {
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .oldPassword("password")
+                .newPassword("")
+                .confirmPassword("")
+                .build();
+
+        mockMvc.perform(put("/profile/change-password")
+                        .header("Authorization", "Bearer " + authToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(1001))
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void testChangePassword_WithNewPasswordTooShort_ShouldReturnError() throws Exception {
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .oldPassword("password")
+                .newPassword("short")
+                .confirmPassword("short")
+                .build();
+
+        mockMvc.perform(put("/profile/change-password")
+                        .header("Authorization", "Bearer " + authToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(1001))
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void testChangePassword_WithBlankConfirmPassword_ShouldReturnError() throws Exception {
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .oldPassword("password")
+                .newPassword("newPassword123")
+                .confirmPassword("")
+                .build();
+
+        mockMvc.perform(put("/profile/change-password")
+                        .header("Authorization", "Bearer " + authToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(1001))
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    void testChangePassword_WithNonExistentUser_ShouldReturnError() throws Exception {
+        // Delete the user to simulate non-existent user
+        userRepository.delete(testUser);
+
+        ChangePasswordRequest request = ChangePasswordRequest.builder()
+                .oldPassword("password")
+                .newPassword("newPassword123")
+                .confirmPassword("newPassword123")
+                .build();
+
+        mockMvc.perform(put("/profile/change-password")
                         .header("Authorization", "Bearer " + authToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))

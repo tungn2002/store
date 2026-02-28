@@ -1,6 +1,7 @@
 package com.personal.store_api.controller;
 
 import com.personal.store_api.dto.ApiResponse;
+import com.personal.store_api.dto.request.ChangePasswordRequest;
 import com.personal.store_api.dto.request.UpdateProfileRequest;
 import com.personal.store_api.dto.response.ProfileResponse;
 import com.personal.store_api.service.ProfileService;
@@ -44,13 +45,27 @@ public class ProfileController {
             @RequestBody @Valid UpdateProfileRequest request) {
         Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String userId = jwt.getSubject();
-        
+
         ProfileResponse profileResponse = profileService.updateProfile(userId, request);
-        
+
         ApiResponse<ProfileResponse> response = ApiResponse.<ProfileResponse>builder()
                 .result(profileResponse)
                 .build();
-        
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @RequestBody @Valid ChangePasswordRequest request) {
+        Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String userId = jwt.getSubject();
+
+        profileService.changePassword(userId, request);
+
+        ApiResponse<Void> response = ApiResponse.<Void>builder()
+                .build();
+
         return ResponseEntity.ok(response);
     }
 }
