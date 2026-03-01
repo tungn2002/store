@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { NavLink, useHistory } from "react-router-dom";
+import { NavLink, useHistory, useParams } from "react-router-dom";
 import Icon from "../components/Icon";
 import PageTitle from "../components/Typography/PageTitle";
-import { HomeIcon, AddIcon } from "../icons";
+import { HomeIcon, EditIcon } from "../icons";
 import {
   Card,
   CardBody,
@@ -13,7 +13,7 @@ import {
   Select,
 } from "@windmill/react-ui";
 import { useToast } from "../utils/toast";
-import { createProduct, getCategories, getBrands } from "../utils/productsApi";
+import { getProduct, updateProduct, getCategories, getBrands } from "../utils/productsApi";
 
 const FormTitle = ({ children }) => {
   return (
@@ -23,7 +23,8 @@ const FormTitle = ({ children }) => {
   );
 };
 
-const AddProduct = () => {
+const EditProduct = () => {
+  const { id } = useParams();
   const history = useHistory();
   const toast = useToast();
 
@@ -37,11 +38,13 @@ const AddProduct = () => {
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
 
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadCategoriesAndBrands();
-  }, []);
+    loadProduct();
+  }, [id]);
 
   const loadCategoriesAndBrands = async () => {
     try {
@@ -54,6 +57,22 @@ const AddProduct = () => {
     } catch (error) {
       console.error("Error loading categories/brands:", error);
       toast.error("Failed to load categories or brands");
+    }
+  };
+
+  const loadProduct = async () => {
+    try {
+      const product = await getProduct(id);
+      setName(product.name || "");
+      setDescription(product.description || "");
+      setImagePreview(product.image || null);
+      setCategoryId(product.category?.id || "");
+      setBrandId(product.brand?.id || "");
+    } catch (error) {
+      console.error("Error loading product:", error);
+      toast.error("Failed to load product");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -97,21 +116,29 @@ const AddProduct = () => {
         formData.append("image", image);
       }
 
-      await createProduct(formData);
-      toast.success("Product created successfully");
+      await updateProduct(id, formData);
+      toast.success("Product updated successfully");
       history.push("/app/all-products");
     } catch (error) {
-      console.error("Error creating product:", error);
-      const message = error.response?.data?.message || "Failed to create product";
+      console.error("Error updating product:", error);
+      const message = error.response?.data?.message || "Failed to update product";
       toast.error(message);
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <span>Loading...</span>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <PageTitle>Add New Product</PageTitle>
+      <PageTitle>Edit Product</PageTitle>
 
       <div className="flex text-gray-800 dark:text-gray-300">
         <div className="flex items-center text-purple-600">
@@ -121,7 +148,11 @@ const AddProduct = () => {
           </NavLink>
         </div>
         <span className="mx-2">{" > "}</span>
-        <p className="text-gray-600 dark:text-gray-300">Add new Product</p>
+        <NavLink exact to="/app/all-products" className="mx-2 text-purple-600">
+          All Products
+        </NavLink>
+        <span className="mx-2">{" > "}</span>
+        <p className="text-gray-600 dark:text-gray-300">Edit Product</p>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -173,10 +204,10 @@ const AddProduct = () => {
                 <Button 
                   type="submit" 
                   size="large" 
-                  iconLeft={AddIcon}
+                  iconLeft={EditIcon}
                   disabled={submitting}
                 >
-                  {submitting ? "Creating..." : "Add Product"}
+                  {submitting ? "Updating..." : "Update Product"}
                 </Button>
               </div>
             </CardBody>
@@ -223,4 +254,4 @@ const AddProduct = () => {
   );
 };
 
-export default AddProduct;
+export default EditProduct;

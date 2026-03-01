@@ -19,6 +19,9 @@ public enum ErrorCode {
     STORE_SETTINGS_NOT_FOUND(1012, "error.store.settings.not.found", HttpStatus.NOT_FOUND),
     CATEGORY_NOT_FOUND(1013, "error.category.not.found", HttpStatus.NOT_FOUND),
     BRAND_NOT_FOUND(1014, "error.brand.not.found", HttpStatus.NOT_FOUND),
+    PRODUCT_NOT_FOUND(1015, "error.product.not.found", HttpStatus.NOT_FOUND),
+    PRODUCT_VARIANT_NOT_FOUND(1016, "error.product.variant.not.found", HttpStatus.NOT_FOUND),
+    PRODUCT_VARIANT_DUPLICATE(1017, "error.product.variant.duplicate", HttpStatus.BAD_REQUEST),
     ;
 
     private final int code;

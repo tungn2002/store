@@ -7,6 +7,7 @@ const OrderDetail = lazy(() => import("../pages/OrderDetail"));
 const ProductsAll = lazy(() => import("../pages/ProductsAll"));
 const SingleProduct = lazy(() => import("../pages/SingleProduct"));
 const AddProduct = lazy(() => import("../pages/AddProduct"));
+const EditProduct = lazy(() => import("../pages/EditProduct"));
 const Customers = lazy(() => import("../pages/Customers"));
 const Categories = lazy(() => import("../pages/Categories"));
 const Brands = lazy(() => import("../pages/Brands"));
@@ -51,8 +52,12 @@ const routes = [
     component: AddProduct,
   },
   {
-    path: "/product/:id",
+    path: "/products/:id",
     component: SingleProduct,
+  },
+  {
+    path: "/products/:id/edit",
+    component: EditProduct,
   },
   {
     path: "/customers",
