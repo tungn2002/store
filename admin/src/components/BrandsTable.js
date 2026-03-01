@@ -17,11 +17,25 @@ import {
   Input,
 } from "@windmill/react-ui";
 import { EditIcon, TrashIcon, AddIcon } from "../icons";
-import response from "../utils/demo/brandsData";
+import {
+  getBrands,
+  createBrand,
+  updateBrand,
+  deleteBrand,
+} from "../utils/brandsApi";
+import { useToast } from "../utils/toast";
 
 const BrandsTable = ({ resultsPerPage }) => {
+  const toast = useToast();
   const [page, setPage] = useState(1);
   const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    totalItems: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrevious: false,
+  });
 
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -31,20 +45,42 @@ const BrandsTable = ({ resultsPerPage }) => {
   const [formData, setFormData] = useState({
     name: "",
   });
-
-  // pagination setup
-  const totalResults = response.length;
+  const [submitting, setSubmitting] = useState(false);
 
   // pagination change control
   function onPageChange(p) {
     setPage(p);
   }
 
-  // on page change, load new sliced data
+  // Fetch brands from API
+  const fetchBrands = async () => {
+    setLoading(true);
+    try {
+      const result = await getBrands(page - 1, resultsPerPage, "id");
+      setData(result.items);
+      setPagination({
+        totalItems: result.totalItems,
+        totalPages: result.totalPages,
+        hasNext: result.hasNext,
+        hasPrevious: result.hasPrevious,
+      });
+    } catch (error) {
+      console.error("Error fetching brands:", error);
+      toast.error("Error fetching brands");
+      setData([]);
+      setPagination({
+        totalItems: 0,
+        totalPages: 0,
+        hasNext: false,
+        hasPrevious: false,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    setData(
-      response.slice((page - 1) * resultsPerPage, page * resultsPerPage)
-    );
+    fetchBrands();
   }, [page, resultsPerPage]);
 
   // Open add modal
@@ -96,23 +132,56 @@ const BrandsTable = ({ resultsPerPage }) => {
   }
 
   // Handle add submit
-  function handleAddSubmit(e) {
+  async function handleAddSubmit(e) {
     e.preventDefault();
-    console.log("Added brand:", formData);
-    closeAddModal();
+    setSubmitting(true);
+    try {
+      await createBrand(formData);
+      toast.success("Brand created successfully");
+      closeAddModal();
+      fetchBrands();
+    } catch (error) {
+      console.error("Error creating brand:", error);
+      const errorMessage = error.response?.data?.message || "Failed to create brand";
+      toast.error(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   // Handle edit submit
-  function handleEditSubmit(e) {
+  async function handleEditSubmit(e) {
     e.preventDefault();
-    console.log("Updated brand:", formData);
-    closeEditModal();
+    setSubmitting(true);
+    try {
+      await updateBrand(selectedBrand.id, formData);
+      toast.success("Brand updated successfully");
+      closeEditModal();
+      fetchBrands();
+    } catch (error) {
+      console.error("Error updating brand:", error);
+      const errorMessage = error.response?.data?.message || "Failed to update brand";
+      toast.error(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   // Handle delete submit
-  function handleDeleteSubmit() {
-    console.log("Deleted brand:", selectedBrand);
-    closeDeleteModal();
+  async function handleDeleteSubmit() {
+    setSubmitting(true);
+    try {
+      await deleteBrand(selectedBrand.id);
+      toast.success("Brand deleted successfully");
+      closeDeleteModal();
+      fetchBrands();
+    } catch (error) {
+      console.error("Error deleting brand:", error);
+      const errorMessage = error.response?.data?.message || "Failed to delete brand";
+      toast.error(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -130,6 +199,7 @@ const BrandsTable = ({ resultsPerPage }) => {
                   value={formData.name}
                   onChange={handleFormChange}
                   placeholder="Enter brand name"
+                  required
                 />
               </div>
             </div>
@@ -137,21 +207,23 @@ const BrandsTable = ({ resultsPerPage }) => {
         </ModalBody>
         <ModalFooter>
           <div className="hidden sm:block">
-            <Button layout="outline" onClick={closeAddModal}>
+            <Button layout="outline" onClick={closeAddModal} disabled={submitting}>
               Cancel
             </Button>
           </div>
           <div className="hidden sm:block">
-            <Button onClick={handleAddSubmit}>Add</Button>
+            <Button onClick={handleAddSubmit} disabled={submitting}>
+              {submitting ? "Adding..." : "Add"}
+            </Button>
           </div>
           <div className="block w-full sm:hidden">
-            <Button block size="large" layout="outline" onClick={closeAddModal}>
+            <Button block size="large" layout="outline" onClick={closeAddModal} disabled={submitting}>
               Cancel
             </Button>
           </div>
           <div className="block w-full sm:hidden">
-            <Button block size="large" onClick={handleAddSubmit}>
-              Add
+            <Button block size="large" onClick={handleAddSubmit} disabled={submitting}>
+              {submitting ? "Adding..." : "Add"}
             </Button>
           </div>
         </ModalFooter>
@@ -170,6 +242,7 @@ const BrandsTable = ({ resultsPerPage }) => {
                   value={formData.name}
                   onChange={handleFormChange}
                   placeholder="Enter brand name"
+                  required
                 />
               </div>
             </div>
@@ -177,21 +250,23 @@ const BrandsTable = ({ resultsPerPage }) => {
         </ModalBody>
         <ModalFooter>
           <div className="hidden sm:block">
-            <Button layout="outline" onClick={closeEditModal}>
+            <Button layout="outline" onClick={closeEditModal} disabled={submitting}>
               Cancel
             </Button>
           </div>
           <div className="hidden sm:block">
-            <Button onClick={handleEditSubmit}>Save Changes</Button>
+            <Button onClick={handleEditSubmit} disabled={submitting}>
+              {submitting ? "Saving..." : "Save Changes"}
+            </Button>
           </div>
           <div className="block w-full sm:hidden">
-            <Button block size="large" layout="outline" onClick={closeEditModal}>
+            <Button block size="large" layout="outline" onClick={closeEditModal} disabled={submitting}>
               Cancel
             </Button>
           </div>
           <div className="block w-full sm:hidden">
-            <Button block size="large" onClick={handleEditSubmit}>
-              Save Changes
+            <Button block size="large" onClick={handleEditSubmit} disabled={submitting}>
+              {submitting ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         </ModalFooter>
@@ -210,21 +285,23 @@ const BrandsTable = ({ resultsPerPage }) => {
         </ModalBody>
         <ModalFooter>
           <div className="hidden sm:block">
-            <Button layout="outline" onClick={closeDeleteModal}>
+            <Button layout="outline" onClick={closeDeleteModal} disabled={submitting}>
               Cancel
             </Button>
           </div>
           <div className="hidden sm:block">
-            <Button onClick={handleDeleteSubmit}>Delete</Button>
+            <Button onClick={handleDeleteSubmit} disabled={submitting}>
+              {submitting ? "Deleting..." : "Delete"}
+            </Button>
           </div>
           <div className="block w-full sm:hidden">
-            <Button block size="large" layout="outline" onClick={closeDeleteModal}>
+            <Button block size="large" layout="outline" onClick={closeDeleteModal} disabled={submitting}>
               Cancel
             </Button>
           </div>
           <div className="block w-full sm:hidden">
-            <Button block size="large" onClick={handleDeleteSubmit}>
-              Delete
+            <Button block size="large" onClick={handleDeleteSubmit} disabled={submitting}>
+              {submitting ? "Deleting..." : "Delete"}
             </Button>
           </div>
         </ModalFooter>
@@ -242,49 +319,63 @@ const BrandsTable = ({ resultsPerPage }) => {
 
       {/* Table */}
       <TableContainer className="mb-8">
-        <Table>
-          <TableHeader>
-            <tr>
-              <TableCell>ID</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>Action</TableCell>
-            </tr>
-          </TableHeader>
-          <TableBody>
-            {data.map((brand) => (
-              <TableRow key={brand.id}>
-                <TableCell>
-                  <span className="text-sm">{brand.id}</span>
-                </TableCell>
-                <TableCell>
-                  <span className="font-medium">{brand.name}</span>
-                </TableCell>
-                <TableCell>
-                  <div className="flex">
-                    <Button
-                      icon={EditIcon}
-                      className="mr-3"
-                      layout="outline"
-                      aria-label="Edit"
-                      size="small"
-                      onClick={() => openEditModal(brand)}
-                    />
-                    <Button
-                      icon={TrashIcon}
-                      layout="outline"
-                      aria-label="Delete"
-                      size="small"
-                      onClick={() => openDeleteModal(brand)}
-                    />
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        {loading ? (
+          <div className="flex justify-center items-center py-8">
+            <span>Loading...</span>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <tr>
+                <TableCell>ID</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Action</TableCell>
+              </tr>
+            </TableHeader>
+            <TableBody>
+              {data.length > 0 ? (
+                data.map((brand) => (
+                  <TableRow key={brand.id}>
+                    <TableCell>
+                      <span className="text-sm">{brand.id}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-medium">{brand.name}</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex">
+                        <Button
+                          icon={EditIcon}
+                          className="mr-3"
+                          layout="outline"
+                          aria-label="Edit"
+                          size="small"
+                          onClick={() => openEditModal(brand)}
+                        />
+                        <Button
+                          icon={TrashIcon}
+                          layout="outline"
+                          aria-label="Delete"
+                          size="small"
+                          onClick={() => openDeleteModal(brand)}
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan="3" className="text-center">
+                    No brands found
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
         <TableFooter>
           <Pagination
-            totalResults={totalResults}
+            totalResults={pagination.totalItems}
             resultsPerPage={resultsPerPage}
             label="Table navigation"
             onChange={onPageChange}

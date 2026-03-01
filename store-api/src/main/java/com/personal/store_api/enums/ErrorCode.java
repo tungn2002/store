@@ -18,6 +18,7 @@ public enum ErrorCode {
     PASSWORD_NOT_MATCH(1011, "error.password.not.match", HttpStatus.BAD_REQUEST),
     STORE_SETTINGS_NOT_FOUND(1012, "error.store.settings.not.found", HttpStatus.NOT_FOUND),
     CATEGORY_NOT_FOUND(1013, "error.category.not.found", HttpStatus.NOT_FOUND),
+    BRAND_NOT_FOUND(1014, "error.brand.not.found", HttpStatus.NOT_FOUND),
     ;
 
     private final int code;
