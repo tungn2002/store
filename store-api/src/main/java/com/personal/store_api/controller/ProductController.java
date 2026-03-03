@@ -2,6 +2,7 @@ package com.personal.store_api.controller;
 
 import com.personal.store_api.dto.ApiResponse;
 import com.personal.store_api.dto.request.ProductRequest;
+import com.personal.store_api.dto.response.NewProductResponse;
 import com.personal.store_api.dto.response.PaginatedResponse;
 import com.personal.store_api.dto.response.ProductResponse;
 import com.personal.store_api.service.ProductService;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/products")
@@ -35,6 +37,17 @@ public class ProductController {
 
         ApiResponse<PaginatedResponse<ProductResponse>> apiResponse = ApiResponse.<PaginatedResponse<ProductResponse>>builder()
                 .result(response)
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @GetMapping("/latest")
+    public ResponseEntity<ApiResponse<List<NewProductResponse>>> getLatest5Products() {
+        List<NewProductResponse> products = productService.getLatest5Products();
+
+        ApiResponse<List<NewProductResponse>> apiResponse = ApiResponse.<List<NewProductResponse>>builder()
+                .result(products)
                 .build();
 
         return ResponseEntity.ok(apiResponse);

@@ -478,4 +478,95 @@ public class ProductControllerIntegrationTest {
                 .andExpect(jsonPath("$.result.variants").isArray())
                 .andExpect(jsonPath("$.result.variants.length()").value(2));
     }
+
+    @Test
+    void testGetLatest5Products_WithLessThan5Products_ShouldReturnAllProducts() throws Exception {
+        Category category = categoryRepository.save(Category.builder()
+                .name("Electronics")
+                .image("http://example.com/cat.jpg")
+                .build());
+
+        Brand brand = brandRepository.save(Brand.builder()
+                .name("Nike")
+                .build());
+
+        Product product1 = productRepository.save(Product.builder()
+                .name("Product 1")
+                .description("Description 1")
+                .category(category)
+                .brand(brand)
+                .image("http://example.com/product1.jpg")
+                .build());
+
+        ProductVariant variant1 = productVariantRepository.save(ProductVariant.builder()
+                .product(product1)
+                .size("M")
+                .color("Red")
+                .price(java.math.BigDecimal.valueOf(1000000))
+                .build());
+
+        Product product2 = productRepository.save(Product.builder()
+                .name("Product 2")
+                .description("Description 2")
+                .category(category)
+                .brand(brand)
+                .image("http://example.com/product2.jpg")
+                .build());
+
+        ProductVariant variant2 = productVariantRepository.save(ProductVariant.builder()
+                .product(product2)
+                .size("L")
+                .color("Blue")
+                .price(java.math.BigDecimal.valueOf(2000000))
+                .build());
+
+        mockMvc.perform(get("/products/latest")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").isArray())
+                .andExpect(jsonPath("$.result.length()").value(2))
+                .andExpect(jsonPath("$.result[0].name").value("Product 2"))
+                .andExpect(jsonPath("$.result[0].price").value(2000000))
+                .andExpect(jsonPath("$.result[1].name").value("Product 1"))
+                .andExpect(jsonPath("$.result[1].price").value(1000000));
+    }
+
+    @Test
+    void testGetLatest5Products_With5Products_ShouldReturn5ProductsOrderedByCreatedAt() throws Exception {
+        Category category = categoryRepository.save(Category.builder()
+                .name("Electronics")
+                .image("http://example.com/cat.jpg")
+                .build());
+
+        Brand brand = brandRepository.save(Brand.builder()
+                .name("Nike")
+                .build());
+
+        for (int i = 1; i <= 5; i++) {
+            Product product = productRepository.save(Product.builder()
+                    .name("Product " + i)
+                    .description("Description " + i)
+                    .category(category)
+                    .brand(brand)
+                    .image("http://example.com/product" + i + ".jpg")
+                    .build());
+
+            productVariantRepository.save(ProductVariant.builder()
+                    .product(product)
+                    .size("M")
+                    .color("Red")
+                    .price(java.math.BigDecimal.valueOf(1000000 * i))
+                    .build());
+        }
+
+        mockMvc.perform(get("/products/latest")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").isArray())
+                .andExpect(jsonPath("$.result.length()").value(5))
+                .andExpect(jsonPath("$.result[0].name").value("Product 5"))
+                .andExpect(jsonPath("$.result[0].price").value(5000000))
+                .andExpect(jsonPath("$.result[4].name").value("Product 1"))
+                .andExpect(jsonPath("$.result[4].price").value(1000000));
+    }
 }

@@ -1,6 +1,7 @@
 package com.personal.store_api.service;
 
 import com.personal.store_api.dto.request.ProductRequest;
+import com.personal.store_api.dto.response.NewProductResponse;
 import com.personal.store_api.dto.response.PaginatedResponse;
 import com.personal.store_api.dto.response.ProductResponse;
 import com.personal.store_api.entity.Category;
@@ -23,6 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -80,8 +83,28 @@ public class ProductService {
     public ProductResponse getProduct(Integer id) {
         Product product = productRepository.findByIdWithVariants(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
-        
+
         return productMapper.toProductResponse(product);
+    }
+
+    @Transactional(readOnly = true)
+    public List<NewProductResponse> getLatest5Products() {
+        List<Product> products = productRepository.findTop5ByOrderByCreatedAtDesc();
+
+        return products.stream()
+                .map(product -> {
+                    BigDecimal price = null;
+                    if (product.getVariants() != null && !product.getVariants().isEmpty()) {
+                        price = product.getVariants().get(0).getPrice();
+                    }
+                    return NewProductResponse.builder()
+                            .id(product.getId())
+                            .name(product.getName())
+                            .image(product.getImage())
+                            .price(price)
+                            .build();
+                })
+                .toList();
     }
 
     @Transactional

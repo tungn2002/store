@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -49,4 +50,7 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.variants WHERE p.id = :id")
     Optional<Product> findByIdWithVariants(@Param("id") Integer id);
+
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.variants v WHERE v.id = (SELECT MIN(v2.id) FROM ProductVariant v2 WHERE v2.product = p) ORDER BY p.createdAt DESC")
+    List<Product> findTop5ByOrderByCreatedAtDesc();
 }
