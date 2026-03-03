@@ -26,7 +26,9 @@ import java.util.List;
 @EnableMethodSecurity
 public class SecurityConfig {
     private final String[] PUBLIC_ENDPOINTS = {
-            "/auth/login","/auth/logout"
+            "/auth/login",
+            "/auth/register",
+            "/auth/logout"
     };
 
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;

@@ -2,6 +2,7 @@ package com.personal.store_api.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.personal.store_api.dto.request.AuthenticationRequest;
+import com.personal.store_api.dto.request.RegisterRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -45,6 +46,81 @@ public class AuthControllerIntegrationTest {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    // ==================== REGISTER TESTS ====================
+
+    @Test
+    void testRegister_WithValidData_ShouldReturnSuccess() throws Exception {
+        RegisterRequest request = RegisterRequest.builder()
+                .name("Test User")
+                .email("test@example.com")
+                .password("testpassword123")
+                .build();
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(1000))
+                .andExpect(jsonPath("$.result").exists());
+    }
+
+    @Test
+    void testRegister_WithExistingEmail_ShouldReturnUserExistedError() throws Exception {
+        // First registration - should succeed
+        RegisterRequest request1 = RegisterRequest.builder()
+                .name("Test User")
+                .email("duplicate@example.com")
+                .password("testpassword123")
+                .build();
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request1)))
+                .andExpect(status().isOk());
+
+        // Second registration with same email - should fail
+        RegisterRequest request2 = RegisterRequest.builder()
+                .name("Test User 2")
+                .email("duplicate@example.com")
+                .password("testpassword123")
+                .build();
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request2)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value(1002)); // USER_EXISTED
+    }
+
+    @Test
+    void testRegister_WithBlankName_ShouldReturnValidationError() throws Exception {
+        RegisterRequest request = RegisterRequest.builder()
+                .name("")
+                .email("test@example.com")
+                .password("testpassword123")
+                .build();
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testRegister_WithoutJwt_ShouldBeAccessible() throws Exception {
+        // Register should be accessible without authentication
+        RegisterRequest request = RegisterRequest.builder()
+                .name("New User")
+                .email("newuser@example.com")
+                .password("testpassword123")
+                .build();
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+    }
 
     // ==================== LOGIN TESTS ====================
 

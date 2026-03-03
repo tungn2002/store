@@ -4,6 +4,7 @@ import com.nimbusds.jose.JOSEException;
 import com.personal.store_api.dto.ApiResponse;
 import com.personal.store_api.dto.request.AuthenticationRequest;
 import com.personal.store_api.dto.request.LogoutRequest;
+import com.personal.store_api.dto.request.RegisterRequest;
 import com.personal.store_api.dto.response.AuthenticationResponse;
 import com.personal.store_api.service.AuthService;
 import lombok.AccessLevel;
@@ -21,6 +22,13 @@ import java.text.ParseException;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthController {
     AuthService authService;
+
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<AuthenticationResponse>> register(@RequestBody RegisterRequest request) {
+        AuthenticationResponse authResponse = authService.register(request);
+        ApiResponse<AuthenticationResponse> response =  ApiResponse.<AuthenticationResponse>builder().result(authResponse).build();
+        return ResponseEntity.ok(response);
+    }
 
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<AuthenticationResponse>> login(@RequestBody AuthenticationRequest request) {

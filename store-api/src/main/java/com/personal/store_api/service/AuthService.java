@@ -3,9 +3,15 @@ package com.personal.store_api.service;
 import com.nimbusds.jose.JOSEException;
 import com.personal.store_api.dto.request.AuthenticationRequest;
 import com.personal.store_api.dto.request.LogoutRequest;
+import com.personal.store_api.dto.request.RegisterRequest;
 import com.personal.store_api.dto.response.AuthenticationResponse;
 import com.personal.store_api.entity.InvalidatedToken;
+import com.personal.store_api.entity.Role;
+import com.personal.store_api.entity.User;
+import com.personal.store_api.enums.ErrorCode;
+import com.personal.store_api.exception.AppException;
 import com.personal.store_api.repository.InvalidatedTokenRepository;
+import com.personal.store_api.repository.RoleRepository;
 import com.personal.store_api.repository.UserRepository;
 import com.personal.store_api.security.JwtTokenProvider;
 import lombok.AccessLevel;
@@ -16,10 +22,13 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +40,8 @@ public class AuthService {
     InvalidatedTokenRepository invalidatedTokenRepository;
     AuthenticationManager authenticationManager;
     private JwtTokenProvider tokenProvider;
+    private final PasswordEncoder passwordEncoder;
+    private final RoleRepository roleRepository;
 
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         Authentication authentication = authenticationManager.authenticate(
@@ -58,6 +69,30 @@ public class AuthService {
                 .build();
 
         invalidatedTokenRepository.save(invalidatedToken);
+    }
+
+    public AuthenticationResponse register(RegisterRequest request) {
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new AppException(ErrorCode.USER_EXISTED);
+        }
+
+        Role userRole = roleRepository.findByName("USER")
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED));
+
+        Set<Role> roles = new HashSet<>();
+        roles.add(userRole);
+
+        User user = User.builder()
+                .name(request.getName())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .roles(roles)
+                .build();
+
+        userRepository.save(user);
+        log.info("New user registered: {}", request.getEmail());
+
+        return AuthenticationResponse.builder().build();
     }
 
 }
