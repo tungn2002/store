@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { productAPI } from '../services/api';
+import { productAPI, cartAPI, authStorage } from '../services/api';
 
-const ProductDetail = ({ productId, toggleView }) => {
+const ProductDetail = ({ productId, toggleView, addToast }) => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedColor, setSelectedColor] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
   const [mainImage, setMainImage] = useState(null);
+  const [addingToCart, setAddingToCart] = useState(false);
 
   useEffect(() => {
     const fetchProductDetail = async () => {
@@ -36,6 +37,67 @@ const ProductDetail = ({ productId, toggleView }) => {
     fetchProductDetail();
   }, [productId]);
 
+  const handleAddToCart = async () => {
+    // Check login
+    if (!authStorage.isAuthenticated()) {
+      addToast('Vui lòng đăng nhập để thêm vào giỏ hàng', 'warning');
+      toggleView('login');
+      return;
+    }
+
+    // Check selected color and size
+    if (!selectedColor || !selectedSize) {
+      addToast('Vui lòng chọn màu và size', 'warning');
+      return;
+    }
+
+    try {
+      setAddingToCart(true);
+      
+      // Find the variant ID for selected color and size
+      const variant = product.prices?.find(
+        p => p.color === selectedColor && p.size === selectedSize
+      );
+
+      console.log('Selected variant:', variant);
+      console.log('Product prices:', product.prices);
+
+      if (!variant) {
+        addToast('Kết hợp màu và size này không có sẵn', 'error');
+        return;
+      }
+
+      // Check if productVariantId exists
+      if (!variant.productVariantId) {
+        addToast('Dữ liệu sản phẩm không hợp lệ', 'error');
+        return;
+      }
+
+      // Check stock
+      if (variant.stock <= 0) {
+        addToast('Size này đã hết hàng', 'error');
+        return;
+      }
+
+      console.log('Adding to cart:', { productVariantId: variant.productVariantId, quantity: 1 });
+      await cartAPI.addToCart(variant.productVariantId, 1);
+      addToast('Đã thêm vào giỏ hàng!', 'success');
+    } catch (err) {
+      console.error('Add to cart error:', err);
+      if (err.message?.includes('already in your cart')) {
+        addToast('Sản phẩm này đã có trong giỏ hàng', 'warning');
+      } else if (err.message?.includes('out of stock')) {
+        addToast('Sản phẩm đã hết hàng', 'error');
+      } else if (err.message?.includes('exceeds stock')) {
+        addToast('Số lượng vượt quá tồn kho', 'error');
+      } else {
+        addToast(err.message || 'Không thể thêm vào giỏ hàng. Vui lòng thử lại!', 'error');
+      }
+    } finally {
+      setAddingToCart(false);
+    }
+  };
+
   const changeMainImg = (src) => {
     setMainImage(src);
   };
@@ -46,7 +108,35 @@ const ProductDetail = ({ productId, toggleView }) => {
 
   const selectColor = (color) => {
     setSelectedColor(color);
+    // Reset size when color changes, will auto-select first available size
+    setSelectedSize(null);
   };
+
+  // Get available sizes for selected color
+  const getAvailableSizesForColor = (color) => {
+    if (!product || !product.prices || !color) return product?.sizes || [];
+    
+    // Filter sizes that have stock for this color
+    const availableSizes = product.prices
+      .filter(p => p.color === color && p.stock > 0)
+      .map(p => p.size);
+    
+    return [...new Set(availableSizes)];
+  };
+
+  // Auto-select first available size when color changes
+  useEffect(() => {
+    if (selectedColor && !selectedSize && product?.sizes) {
+      const availableSizes = getAvailableSizesForColor(selectedColor);
+      if (availableSizes.length > 0) {
+        // Select first available size that's in the product.sizes list
+        const firstValidSize = product.sizes.find(s => availableSizes.includes(s));
+        if (firstValidSize) {
+          setSelectedSize(firstValidSize);
+        }
+      }
+    }
+  }, [selectedColor, product]);
 
   const getVariantStock = (color, size) => {
     if (!product || !product.prices) return 0;
@@ -185,7 +275,7 @@ const ProductDetail = ({ productId, toggleView }) => {
           )}
 
           {/* Size Selector */}
-          {product.sizes && product.sizes.length > 0 && (
+          {product.sizes && product.sizes.length > 0 && selectedColor && (
             <div>
               <p className="text-sm font-bold uppercase mb-3">Chọn Kích cỡ (Size):</p>
               <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
@@ -214,17 +304,22 @@ const ProductDetail = ({ productId, toggleView }) => {
             </div>
           )}
 
+          {!selectedColor && (
+            <p className="text-sm text-gray-500 italic">Vui lòng chọn màu trước khi chọn size</p>
+          )}
+
           <div className="border-t border-b py-4">
             <p className="text-sm text-gray-600 mb-2">{product.description || 'Không có mô tả chi tiết'}</p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
             <button 
+              onClick={handleAddToCart}
+              disabled={addingToCart || product.totalStock === 0}
               className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-md uppercase tracking-wider transition shadow-lg disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              disabled={product.totalStock === 0}
             >
               <i className="fas fa-shopping-cart"></i>
-              {product.totalStock > 0 ? 'THÊM VÀO GIỎ HÀNG' : 'HẾT HÀNG'}
+              {addingToCart ? 'ĐANG THÊM...' : (product.totalStock > 0 ? 'THÊM VÀO GIỎ HÀNG' : 'HẾT HÀNG')}
             </button>
           </div>
         </div>

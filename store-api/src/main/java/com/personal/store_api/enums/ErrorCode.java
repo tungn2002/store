@@ -22,6 +22,13 @@ public enum ErrorCode {
     PRODUCT_NOT_FOUND(1015, "error.product.not.found", HttpStatus.NOT_FOUND),
     PRODUCT_VARIANT_NOT_FOUND(1016, "error.product.variant.not.found", HttpStatus.NOT_FOUND),
     PRODUCT_VARIANT_DUPLICATE(1017, "error.product.variant.duplicate", HttpStatus.BAD_REQUEST),
+    PRODUCT_OUT_OF_STOCK(1018, "error.product.out.of.stock", HttpStatus.BAD_REQUEST),
+    CART_ITEM_NOT_FOUND(1019, "error.cart.item.not.found", HttpStatus.NOT_FOUND),
+    CART_MAX_ITEMS_REACHED(1020, "error.cart.max.items.reached", HttpStatus.BAD_REQUEST),
+    CART_QUANTITY_EXCEEDS_STOCK(1021, "error.cart.quantity.exceeds.stock", HttpStatus.BAD_REQUEST),
+    CART_QUANTITY_MAX_EXCEEDED(1022, "error.cart.quantity.max.exceeded", HttpStatus.BAD_REQUEST),
+    CART_QUANTITY_MIN(1023, "error.cart.quantity.min", HttpStatus.BAD_REQUEST),
+    CART_ITEM_ALREADY_EXISTS(1024, "error.cart.item.already.exists", HttpStatus.BAD_REQUEST),
     ;
 
     private final int code;

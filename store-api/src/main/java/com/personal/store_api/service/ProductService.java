@@ -149,6 +149,7 @@ public class ProductService {
         // Collect all variant prices with stock info
         List<ProductDetailResponse.VariantPriceStock> prices = product.getVariants().stream()
                 .map(variant -> ProductDetailResponse.VariantPriceStock.builder()
+                        .productVariantId(variant.getId())
                         .color(variant.getColor())
                         .size(variant.getSize())
                         .price(variant.getPrice())

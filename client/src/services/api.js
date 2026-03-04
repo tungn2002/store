@@ -45,7 +45,7 @@ export const authAPI = {
     const data = await apiCall('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ name, email, password }),
-    });
+    }, false); // Không cần auth cho register
     return data;
   },
 
@@ -53,7 +53,7 @@ export const authAPI = {
     const data = await apiCall('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
-    });
+    }, false); // Không cần auth cho login
     if (data.result && data.result.token) {
       setToken(data.result.token);
     }
@@ -114,6 +114,17 @@ export const productAPI = {
     const data = await apiCall(`/products/${productId}/detail`, {
       method: 'GET',
     }, false); // Không cần auth
+    return data;
+  },
+};
+
+// Cart API
+export const cartAPI = {
+  addToCart: async (productVariantId, quantity = 1) => {
+    const data = await apiCall('/cart/items', {
+      method: 'POST',
+      body: JSON.stringify({ productVariantId, quantity }),
+    }, true); // Cần auth
     return data;
   },
 };

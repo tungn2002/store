@@ -31,6 +31,7 @@ public class ProductDetailResponse {
     @AllArgsConstructor
     @FieldDefaults(level = AccessLevel.PRIVATE)
     public static class VariantPriceStock {
+        Integer productVariantId;
         String color;
         String size;
         BigDecimal price;

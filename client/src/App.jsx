@@ -92,7 +92,7 @@ function App() {
       case 'category':
         return <CategoryView categoryName={selectedCategory} products={products.concat(products)} onViewDetail={viewDetail} toggleView={toggleView} />;
       case 'detail':
-        return <ProductDetail productId={selectedProduct} toggleView={toggleView} />;
+        return <ProductDetail productId={selectedProduct} toggleView={toggleView} addToast={addToast} />;
       case 'profile':
         return <UserProfile onClose={() => toggleView('home')} onLogout={handleLogout} addToast={addToast} />;
       case 'favorites':
