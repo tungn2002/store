@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -54,6 +55,14 @@ public class CategoryService {
                 .hasNext(categoryPage.hasNext())
                 .hasPrevious(categoryPage.hasPrevious())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CategoryResponse> getAllCategories() {
+        List<Category> categories = categoryRepository.findAll();
+        return categories.stream()
+                .map(categoryMapper::toCategoryResponse)
+                .toList();
     }
 
     @Transactional

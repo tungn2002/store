@@ -118,6 +118,26 @@ export const productAPI = {
   },
 };
 
+// Brand API
+export const brandAPI = {
+  getAllBrands: async () => {
+    const data = await apiCall('/brands/all', {
+      method: 'GET',
+    }, false); // Không cần auth
+    return data;
+  },
+};
+
+// Category API
+export const categoryAPI = {
+  getAllCategories: async () => {
+    const data = await apiCall('/categories/all', {
+      method: 'GET',
+    }, false); // Không cần auth
+    return data;
+  },
+};
+
 // Cart API
 export const cartAPI = {
   addToCart: async (productVariantId, quantity = 1) => {
@@ -157,5 +177,7 @@ export default {
   authAPI,
   profileAPI,
   productAPI,
+  brandAPI,
+  categoryAPI,
   authStorage,
 };

@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/categories")
@@ -38,6 +39,17 @@ public class CategoryController {
         PaginatedResponse<CategoryResponse> response = categoryService.getCategories(page, size, sortBy);
 
         ApiResponse<PaginatedResponse<CategoryResponse>> apiResponse = ApiResponse.<PaginatedResponse<CategoryResponse>>builder()
+                .result(response)
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<List<CategoryResponse>>> getAllCategories() {
+        List<CategoryResponse> response = categoryService.getAllCategories();
+
+        ApiResponse<List<CategoryResponse>> apiResponse = ApiResponse.<List<CategoryResponse>>builder()
                 .result(response)
                 .build();
 

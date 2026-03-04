@@ -17,6 +17,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -43,6 +45,14 @@ public class BrandService {
                 .hasNext(brandPage.hasNext())
                 .hasPrevious(brandPage.hasPrevious())
                 .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<BrandResponse> getAllBrands() {
+        List<Brand> brands = brandRepository.findAll();
+        return brands.stream()
+                .map(brandMapper::toBrandResponse)
+                .toList();
     }
 
     @Transactional

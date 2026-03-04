@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/brands")
 @RequiredArgsConstructor
@@ -36,6 +38,17 @@ public class BrandController {
         PaginatedResponse<BrandResponse> response = brandService.getBrands(page, size, sortBy);
 
         ApiResponse<PaginatedResponse<BrandResponse>> apiResponse = ApiResponse.<PaginatedResponse<BrandResponse>>builder()
+                .result(response)
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<ApiResponse<List<BrandResponse>>> getAllBrands() {
+        List<BrandResponse> response = brandService.getAllBrands();
+
+        ApiResponse<List<BrandResponse>> apiResponse = ApiResponse.<List<BrandResponse>>builder()
                 .result(response)
                 .build();
 

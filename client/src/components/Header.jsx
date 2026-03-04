@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { authStorage } from '../services/api';
 
 const Header = ({ currentView, toggleView, isLoggedIn, onProfileClick, onLogout, onCartClick }) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -14,6 +15,16 @@ const Header = ({ currentView, toggleView, isLoggedIn, onProfileClick, onLogout,
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleUserClick = () => {
+    if (!authStorage.isAuthenticated()) {
+      // Chưa đăng nhập → mở login
+      toggleView('login');
+    } else {
+      // Đã đăng nhập → hiện menu
+      setShowUserMenu(!showUserMenu);
+    }
+  };
 
   const handleProfileClick = () => {
     onProfileClick();
@@ -46,7 +57,7 @@ const Header = ({ currentView, toggleView, isLoggedIn, onProfileClick, onLogout,
           <div className="relative" ref={menuRef}>
             <a
               href="#"
-              onClick={(e) => { e.preventDefault(); setShowUserMenu(!showUserMenu); }}
+              onClick={(e) => { e.preventDefault(); handleUserClick(); }}
               className="hover:text-red-600 hidden md:inline cursor-pointer"
             >
               <i className="far fa-user"></i>
