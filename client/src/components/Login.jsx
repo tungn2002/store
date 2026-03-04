@@ -1,30 +1,28 @@
 import React, { useState } from 'react';
 import './Login.css';
+import { authAPI, authStorage } from '../services/api';
 
-const Login = ({ toggleView }) => {
+const Login = ({ toggleView, addToast }) => {
   const [isLogin, setIsLogin] = useState(true);
 
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-background">
-          <div className="auth-shapes">
-            <div className="shape shape-1"></div>
-            <div className="shape shape-2"></div>
-            <div className="shape shape-3"></div>
+    <div className="login-page">
+      <div className="login-container">
+        <div className="login-box">
+          <div className="login-header">
+            <h2>{isLogin ? 'Đăng Nhập' : 'Đăng Ký'}</h2>
+            <p>{isLogin ? 'Chào mừng trở lại!' : 'Tạo tài khoản mới'}</p>
           </div>
-        </div>
-        
-        <div className="auth-card">
-          <div className="auth-toggle">
-            <button 
-              className={`toggle-btn ${isLogin ? 'active' : ''}`}
+
+          <div className="login-tabs">
+            <button
+              className={`tab ${isLogin ? 'active' : ''}`}
               onClick={() => setIsLogin(true)}
             >
               Đăng nhập
             </button>
-            <button 
-              className={`toggle-btn ${!isLogin ? 'active' : ''}`}
+            <button
+              className={`tab ${!isLogin ? 'active' : ''}`}
               onClick={() => setIsLogin(false)}
             >
               Đăng ký
@@ -32,9 +30,9 @@ const Login = ({ toggleView }) => {
           </div>
 
           {isLogin ? (
-            <LoginForm toggleView={toggleView} />
+            <LoginForm toggleView={toggleView} addToast={addToast} />
           ) : (
-            <RegisterForm setIsLogin={setIsLogin} />
+            <RegisterForm setIsLogin={setIsLogin} toggleView={toggleView} addToast={addToast} />
           )}
         </div>
       </div>
@@ -43,13 +41,14 @@ const Login = ({ toggleView }) => {
 };
 
 // Login Form Component
-const LoginForm = ({ toggleView }) => {
+const LoginForm = ({ toggleView, addToast }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -57,7 +56,6 @@ const LoginForm = ({ toggleView }) => {
       ...prev,
       [name]: value
     }));
-    // Clear error when user types
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -66,7 +64,7 @@ const LoginForm = ({ toggleView }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
 
@@ -85,27 +83,44 @@ const LoginForm = ({ toggleView }) => {
       return;
     }
 
-    // Handle login logic here
-    console.log('Login submitted:', formData);
-    alert('Đăng nhập thành công!');
-    toggleView('home');
+    setLoading(true);
+    try {
+      const response = await authAPI.login(formData.email, formData.password);
+      if (response.code === 1000 && response.result?.token) {
+        // Fetch user profile after login
+        try {
+          const profileResponse = await fetch('http://localhost:8080/profile', {
+            headers: {
+              'Authorization': `Bearer ${response.result.token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          const profileData = await profileResponse.json();
+          if (profileData.result) {
+            authStorage.setUser(profileData.result);
+          }
+        } catch (profileError) {
+          console.error('Failed to fetch profile:', profileError);
+        }
+
+        addToast('Đăng nhập thành công!', 'success');
+        toggleView('home');
+      } else {
+        setErrors({ submit: response.message || 'Đăng nhập thất bại' });
+        addToast(response.message || 'Đăng nhập thất bại', 'error');
+      }
+    } catch (error) {
+      setErrors({ submit: error.message || 'Có lỗi xảy ra, vui lòng thử lại' });
+      addToast(error.message || 'Có lỗi xảy ra, vui lòng thử lại', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <form className="auth-form" onSubmit={handleSubmit}>
-      <div className="form-header">
-        <h2>Chào mừng trở lại!</h2>
-        <p>Vui lòng đăng nhập để tiếp tục</p>
-      </div>
-
+    <form className="login-form" onSubmit={handleSubmit}>
       <div className="form-group">
-        <label htmlFor="login-email">
-          <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-            <polyline points="22,6 12,13 2,6"/>
-          </svg>
-          Email
-        </label>
+        <label htmlFor="login-email">Email</label>
         <input
           type="email"
           id="login-email"
@@ -113,20 +128,13 @@ const LoginForm = ({ toggleView }) => {
           value={formData.email}
           onChange={handleChange}
           placeholder="nh@example.com"
-          className={errors.email ? 'error' : ''}
         />
         {errors.email && <span className="error-message">{errors.email}</span>}
       </div>
 
       <div className="form-group">
-        <label htmlFor="login-password">
-          <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-          Mật khẩu
-        </label>
-        <div className="password-input-wrapper">
+        <label htmlFor="login-password">Mật khẩu</label>
+        <div className="password-wrapper">
           <input
             type={showPassword ? 'text' : 'password'}
             id="login-password"
@@ -134,7 +142,6 @@ const LoginForm = ({ toggleView }) => {
             value={formData.password}
             onChange={handleChange}
             placeholder="Nhập mật khẩu"
-            className={errors.password ? 'error' : ''}
           />
           <button
             type="button"
@@ -142,74 +149,34 @@ const LoginForm = ({ toggleView }) => {
             onClick={() => setShowPassword(!showPassword)}
           >
             {showPassword ? (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                <line x1="1" y1="1" x2="23" y2="23"/>
-              </svg>
+              <i className="fas fa-eye-slash"></i>
             ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
+              <i className="fas fa-eye"></i>
             )}
           </button>
         </div>
         {errors.password && <span className="error-message">{errors.password}</span>}
       </div>
 
-      <div className="form-options">
-        <label className="remember-me">
-          <input type="checkbox" />
-          <span>Ghi nhớ đăng nhập</span>
-        </label>
-        <a href="#" className="forgot-password">Quên mật khẩu?</a>
-      </div>
+      {errors.submit && <div className="error-message submit-error">{errors.submit}</div>}
 
-      <button type="submit" className="btn-submit">
-        Đăng nhập
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="5" y1="12" x2="19" y2="12"/>
-          <polyline points="12 5 19 12 12 19"/>
-        </svg>
+      <button type="submit" className="submit-btn" disabled={loading}>
+        {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
       </button>
-
-      <div className="divider">
-        <span>Hoặc</span>
-      </div>
-
-      <div className="social-login">
-        <button type="button" className="social-btn google">
-          <svg viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-          </svg>
-          Google
-        </button>
-        <button type="button" className="social-btn facebook">
-          <svg viewBox="0 0 24 24" fill="#1877F2">
-            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-          </svg>
-          Facebook
-        </button>
-      </div>
     </form>
   );
 };
 
 // Register Form Component
-const RegisterForm = ({ setIsLogin }) => {
+const RegisterForm = ({ setIsLogin, toggleView, addToast }) => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: '',
-    confirmPassword: ''
+    password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [acceptTerms, setAcceptTerms] = useState(false);
   const [errors, setErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -217,7 +184,6 @@ const RegisterForm = ({ setIsLogin }) => {
       ...prev,
       [name]: value
     }));
-    // Clear error when user types
     if (errors[name]) {
       setErrors(prev => ({
         ...prev,
@@ -226,7 +192,7 @@ const RegisterForm = ({ setIsLogin }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const newErrors = {};
 
@@ -244,18 +210,8 @@ const RegisterForm = ({ setIsLogin }) => {
 
     if (!formData.password) {
       newErrors.password = 'Mật khẩu là bắt buộc';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
-    }
-
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Xác nhận mật khẩu là bắt buộc';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Mật khẩu xác nhận không khớp';
-    }
-
-    if (!acceptTerms) {
-      newErrors.terms = 'Bạn phải chấp nhận điều khoản';
+    } else if (formData.password.length < 8) {
+      newErrors.password = 'Mật khẩu phải có ít nhất 8 ký tự';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -263,27 +219,28 @@ const RegisterForm = ({ setIsLogin }) => {
       return;
     }
 
-    // Handle registration logic here
-    console.log('Register submitted:', formData);
-    alert('Đăng ký thành công! Vui lòng đăng nhập.');
-    setIsLogin(true);
+    setLoading(true);
+    try {
+      const response = await authAPI.register(formData.name, formData.email, formData.password);
+      if (response.code === 1000) {
+        addToast('Đăng ký thành công! Vui lòng đăng nhập', 'success');
+        setIsLogin(true);
+      } else {
+        setErrors({ submit: response.message || 'Đăng ký thất bại' });
+        addToast(response.message || 'Đăng ký thất bại', 'error');
+      }
+    } catch (error) {
+      setErrors({ submit: error.message || 'Có lỗi xảy ra, vui lòng thử lại' });
+      addToast(error.message || 'Có lỗi xảy ra, vui lòng thử lại', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <form className="auth-form" onSubmit={handleSubmit}>
-      <div className="form-header">
-        <h2>Tạo tài khoản mới</h2>
-        <p>Đăng ký để mua sắm ngay hôm nay</p>
-      </div>
-
+    <form className="login-form" onSubmit={handleSubmit}>
       <div className="form-group">
-        <label htmlFor="register-name">
-          <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-            <circle cx="12" cy="7" r="4"/>
-          </svg>
-          Họ và tên
-        </label>
+        <label htmlFor="register-name">Họ và tên</label>
         <input
           type="text"
           id="register-name"
@@ -291,19 +248,12 @@ const RegisterForm = ({ setIsLogin }) => {
           value={formData.name}
           onChange={handleChange}
           placeholder="Nguyễn Văn A"
-          className={errors.name ? 'error' : ''}
         />
         {errors.name && <span className="error-message">{errors.name}</span>}
       </div>
 
       <div className="form-group">
-        <label htmlFor="register-email">
-          <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-            <polyline points="22,6 12,13 2,6"/>
-          </svg>
-          Email
-        </label>
+        <label htmlFor="register-email">Email</label>
         <input
           type="email"
           id="register-email"
@@ -311,28 +261,20 @@ const RegisterForm = ({ setIsLogin }) => {
           value={formData.email}
           onChange={handleChange}
           placeholder="nh@example.com"
-          className={errors.email ? 'error' : ''}
         />
         {errors.email && <span className="error-message">{errors.email}</span>}
       </div>
 
       <div className="form-group">
-        <label htmlFor="register-password">
-          <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-          Mật khẩu
-        </label>
-        <div className="password-input-wrapper">
+        <label htmlFor="register-password">Mật khẩu</label>
+        <div className="password-wrapper">
           <input
             type={showPassword ? 'text' : 'password'}
             id="register-password"
             name="password"
             value={formData.password}
             onChange={handleChange}
-            placeholder="Ít nhất 6 ký tự"
-            className={errors.password ? 'error' : ''}
+            placeholder="Nhập mật khẩu"
           />
           <button
             type="button"
@@ -340,89 +282,23 @@ const RegisterForm = ({ setIsLogin }) => {
             onClick={() => setShowPassword(!showPassword)}
           >
             {showPassword ? (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                <line x1="1" y1="1" x2="23" y2="23"/>
-              </svg>
+              <i className="fas fa-eye-slash"></i>
             ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
+              <i className="fas fa-eye"></i>
             )}
           </button>
         </div>
         {errors.password && <span className="error-message">{errors.password}</span>}
       </div>
 
-      <div className="form-group">
-        <label htmlFor="register-confirm-password">
-          <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-          </svg>
-          Xác nhận mật khẩu
-        </label>
-        <div className="password-input-wrapper">
-          <input
-            type={showConfirmPassword ? 'text' : 'password'}
-            id="register-confirm-password"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            placeholder="Nhập lại mật khẩu"
-            className={errors.confirmPassword ? 'error' : ''}
-          />
-          <button
-            type="button"
-            className="toggle-password"
-            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-          >
-            {showConfirmPassword ? (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                <line x1="1" y1="1" x2="23" y2="23"/>
-              </svg>
-            ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-            )}
-          </button>
-        </div>
-        {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
-      </div>
+      {errors.submit && <div className="error-message submit-error">{errors.submit}</div>}
 
-      <div className="form-group">
-        <label className="terms-checkbox">
-          <input
-            type="checkbox"
-            checked={acceptTerms}
-            onChange={(e) => {
-              setAcceptTerms(e.target.checked);
-              if (errors.terms) {
-                setErrors(prev => ({ ...prev, terms: '' }));
-              }
-            }}
-          />
-          <span>
-            Tôi chấp nhận <a href="#">Điều khoản & Điều kiện</a> và <a href="#">Chính sách bảo mật</a>
-          </span>
-        </label>
-        {errors.terms && <span className="error-message">{errors.terms}</span>}
-      </div>
-
-      <button type="submit" className="btn-submit">
-        Đăng ký
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <line x1="5" y1="12" x2="19" y2="12"/>
-          <polyline points="12 5 19 12 12 19"/>
-        </svg>
+      <button type="submit" className="submit-btn" disabled={loading}>
+        {loading ? 'Đang đăng ký...' : 'Đăng ký'}
       </button>
 
       <p className="login-link">
-        Đã có tài khoản? <button type="button" onClick={() => setIsLogin(true)}>Đăng nhập ngay</button>
+        Đã có tài khoản? <button type="button" onClick={() => setIsLogin(true)}>Đăng nhập</button>
       </p>
     </form>
   );

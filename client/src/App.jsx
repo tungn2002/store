@@ -12,6 +12,7 @@ import UserProfile from './components/UserProfile';
 import Favorites from './components/Favorites';
 import Login from './components/Login';
 import Footer from './components/Footer';
+import Toast from './components/Toast';
 
 const products = [
   { id: 1, name: "Nike Air Max 90 Red Edition", price: 1250000, oldPrice: 1500000, img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80", gallery: ["https://images.unsplash.com/photo-1542291026-7eec264c27ff", "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa", "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a"] },
@@ -25,21 +26,57 @@ function App() {
   const [currentView, setCurrentView] = useState('home');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [toasts, setToasts] = useState([]);
+
+  const addToast = (message, type = 'info') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+  };
+
+  const removeToast = (id) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
 
   const toggleView = (view, categoryName = '') => {
     setCurrentView(view);
     if (view === 'category') {
       setSelectedCategory(categoryName);
     } else if (view === 'detail') {
-      // Assuming categoryName is productId for detail
-      const product = products.find(p => p.id === categoryName);
-      setSelectedProduct(product);
+      // Store productId for API call
+      setSelectedProduct(categoryName);
     }
     window.scrollTo(0, 0);
   };
 
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    toggleView('home');
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    toggleView('home');
+  };
+
   const viewDetail = (productId) => {
     toggleView('detail', productId);
+  };
+
+  const handleProfileClick = () => {
+    if (!isLoggedIn) {
+      toggleView('login');
+    } else {
+      toggleView('profile');
+    }
+  };
+
+  const handleCartClick = () => {
+    if (!isLoggedIn) {
+      toggleView('login');
+    } else {
+      toggleView('cart');
+    }
   };
 
   const renderContent = () => {
@@ -49,21 +86,21 @@ function App() {
           <>
             <Hero toggleView={toggleView} />
             <HomeCategories toggleView={toggleView} />
-            <ProductGrid products={products} onViewDetail={viewDetail} toggleView={toggleView} />
+            <ProductGrid toggleView={toggleView} />
           </>
         );
       case 'category':
         return <CategoryView categoryName={selectedCategory} products={products.concat(products)} onViewDetail={viewDetail} toggleView={toggleView} />;
       case 'detail':
-        return <ProductDetail product={selectedProduct} toggleView={toggleView} />;
+        return <ProductDetail productId={selectedProduct} toggleView={toggleView} />;
       case 'profile':
-        return <UserProfile onClose={() => toggleView('home')} />;
+        return <UserProfile onClose={() => toggleView('home')} onLogout={handleLogout} addToast={addToast} />;
       case 'favorites':
         return <Favorites toggleView={toggleView} />;
       case 'cart':
         return <Cart toggleView={toggleView} />;
       case 'login':
-        return <Login toggleView={toggleView} />;
+        return <Login toggleView={handleLogin} addToast={addToast} />;
       default:
         return null;
     }
@@ -71,12 +108,28 @@ function App() {
 
   return (
     <div className="bg-gray-50 text-gray-800">
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
       <Topbar toggleView={toggleView} />
-      <Header currentView={currentView} toggleView={toggleView} />
+      <Header currentView={currentView} toggleView={toggleView} isLoggedIn={isLoggedIn} onProfileClick={handleProfileClick} onLogout={handleLogout} onCartClick={handleCartClick} />
       {renderContent()}
       <Footer />
     </div>
   );
 }
+
+const ToastContainer = ({ toasts, removeToast }) => {
+  return (
+    <div className="toast-container">
+      {toasts.map(toast => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => removeToast(toast.id)}
+        />
+      ))}
+    </div>
+  );
+};
 
 export default App;

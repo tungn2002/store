@@ -5,7 +5,7 @@ const CategoryView = ({ categoryName, products, onViewDetail, toggleView }) => {
   return (
     <div className="max-w-[1200px] mx-auto px-12 py-8">
       <nav className="text-xs text-gray-500 mb-6 uppercase tracking-wider">
-        <a href="javascript:void(0)" onClick={() => toggleView('home')} className="hover:text-red-600">Trang chủ</a>
+        <a href="#" onClick={(e) => { e.preventDefault(); toggleView('home'); }} className="hover:text-red-600">Trang chủ</a>
         <span className="mx-2">/</span>
         <span className="text-gray-800 font-bold">{categoryName}</span>
       </nav>

@@ -8,7 +8,7 @@ const Hero = ({ toggleView }) => {
       </div>
       <div className="relative max-w-[1200px] mx-auto h-full flex flex-col justify-center px-12 text-white">
         <h2 className="text-2xl md:text-5xl font-bold mb-4 uppercase">New Collection 2024</h2>
-        <p className="text-lg mb-8 max-w-lg">Khám phá những mẫu Sneaker mới nhất, dẫn đầu xu hướng thời trang thế giới tại Giày Xshop.</p>
+        <p className="text-lg mb-8 max-w-lg">Khám phá những mẫu Sneaker mới nhất, dẫn đầu xu hướng thời trang thế giới tại ZFashion.</p>
         <div>
           <button onClick={() => toggleView('category', 'Bộ sưu tập mới')} className="bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-md font-bold transition inline-block">MUA NGAY</button>
         </div>

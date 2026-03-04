@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './UserProfile.css';
+import { profileAPI, authStorage } from '../services/api';
 
-const UserProfile = ({ onClose }) => {
+const UserProfile = ({ onClose, onLogout, addToast }) => {
   const [activeMenu, setActiveMenu] = useState('personal-info');
+
+  const handleLogout = () => {
+    onLogout();
+  };
 
   return (
     <div className="user-profile-page">
       <div className="user-profile-container">
         <div className="user-profile-header">
           <h2>Trang Cá Nhân</h2>
-          <button className="back-btn" onClick={onClose}>← Quay lại</button>
+          <div className="header-actions">
+            <button className="logout-btn" onClick={handleLogout}>Đăng xuất</button>
+            <button className="back-btn" onClick={onClose}>← Quay lại</button>
+          </div>
         </div>
         <div className="user-profile-content">
           {/* Left Menu */}
@@ -33,7 +41,7 @@ const UserProfile = ({ onClose }) => {
           {/* Right Content */}
           <div className="content-right">
             {activeMenu === 'personal-info' ? (
-              <PersonalInfoForm />
+              <PersonalInfoForm addToast={addToast} />
             ) : (
               <OrdersTable />
             )}
@@ -45,18 +53,50 @@ const UserProfile = ({ onClose }) => {
 };
 
 // Personal Information Form Component
-const PersonalInfoForm = () => {
+const PersonalInfoForm = ({ addToast }) => {
   const [formData, setFormData] = useState({
-    name: 'Nguyễn Văn A',
-    email: 'nguyenvana@example.com',
-    phonenumber: '0123456789',
-    dob: '1990-01-01',
-    gender: 'male',
-    address: '123 Đường ABC, Quận XYZ, TP.HCM',
+    name: '',
+    email: '',
+    phoneNumber: '',
+    dateOfBirth: '',
+    gender: '',
+    address: '',
     password_old: '',
     password_new: '',
     password_access: ''
   });
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Fetch profile data on mount
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await profileAPI.getProfile();
+        if (response.code === 1000 && response.result) {
+          const profile = response.result;
+          setFormData(prev => ({
+            ...prev,
+            name: profile.name || '',
+            email: profile.email || '',
+            phoneNumber: profile.phoneNumber || '',
+            dateOfBirth: profile.dateOfBirth || '',
+            gender: profile.gender || '',
+            address: profile.address || ''
+          }));
+          // Update stored user info
+          authStorage.setUser(profile);
+        }
+      } catch (error) {
+        console.error('Failed to fetch profile:', error);
+        addToast('Không thể tải thông tin cá nhân', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, [addToast]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -66,11 +106,40 @@ const PersonalInfoForm = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission here
-    console.log('Form submitted:', formData);
+    setSubmitting(true);
+
+    try {
+      const profileData = {
+        name: formData.name,
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        dateOfBirth: formData.dateOfBirth || null,
+        gender: formData.gender || null,
+        address: formData.address
+      };
+
+      const response = await profileAPI.updateProfile(profileData);
+      if (response.code === 1000) {
+        addToast('Cập nhật thông tin thành công!', 'success');
+        // Update stored user info
+        if (response.result) {
+          authStorage.setUser(response.result);
+        }
+      } else {
+        addToast(response.message || 'Cập nhật thất bại', 'error');
+      }
+    } catch (error) {
+      addToast(error.message || 'Có lỗi xảy ra khi cập nhật', 'error');
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (loading) {
+    return <div className="loading-container">Đang tải thông tin...</div>;
+  }
 
   return (
     <div className="form-container">
@@ -103,23 +172,23 @@ const PersonalInfoForm = () => {
 
         <div className="form-row">
           <div className="form-group">
-            <label htmlFor="phonenumber">Số điện thoại:</label>
+            <label htmlFor="phoneNumber">Số điện thoại:</label>
             <input
               type="tel"
-              id="phonenumber"
-              name="phonenumber"
-              value={formData.phonenumber}
+              id="phoneNumber"
+              name="phoneNumber"
+              value={formData.phoneNumber}
               onChange={handleChange}
               placeholder="Nhập số điện thoại"
             />
           </div>
           <div className="form-group">
-            <label htmlFor="dob">Ngày sinh:</label>
+            <label htmlFor="dateOfBirth">Ngày sinh:</label>
             <input
               type="date"
-              id="dob"
-              name="dob"
-              value={formData.dob}
+              id="dateOfBirth"
+              name="dateOfBirth"
+              value={formData.dateOfBirth}
               onChange={handleChange}
             />
           </div>
@@ -135,9 +204,9 @@ const PersonalInfoForm = () => {
               onChange={handleChange}
             >
               <option value="">Chọn giới tính</option>
-              <option value="male">Nam</option>
-              <option value="female">Nữ</option>
-              <option value="other">Khác</option>
+              <option value="MALE">Nam</option>
+              <option value="FEMALE">Nữ</option>
+              <option value="OTHER">Khác</option>
             </select>
           </div>
           <div className="form-group">
@@ -154,54 +223,114 @@ const PersonalInfoForm = () => {
         </div>
 
         <div className="form-actions">
-          <button type="submit" className="btn-save">Lưu thay đổi</button>
+          <button type="submit" className="btn-save" disabled={submitting}>
+            {submitting ? 'Đang lưu...' : 'Lưu thay đổi'}
+          </button>
         </div>
 
         <div className="password-section">
           <h4>Thay đổi mật khẩu</h4>
-          <div className="form-row">
-            <div className="form-group">
-              <label htmlFor="password_old">Mật khẩu cũ:</label>
-              <input
-                type="password"
-                id="password_old"
-                name="password_old"
-                value={formData.password_old}
-                onChange={handleChange}
-                placeholder="Nhập mật khẩu cũ"
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="password_new">Mật khẩu mới:</label>
-              <input
-                type="password"
-                id="password_new"
-                name="password_new"
-                value={formData.password_new}
-                onChange={handleChange}
-                placeholder="Nhập mật khẩu mới"
-              />
-            </div>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password_access">Xác nhận mật khẩu:</label>
-            <input
-              type="password"
-              id="password_access"
-              name="password_access"
-              value={formData.password_access}
-              onChange={handleChange}
-              placeholder="Nhập lại mật khẩu mới"
-            />
-          </div>
-
-          <div className="form-actions">
-            <button type="submit" className="btn-save">Lưu thay đổi</button>
-          </div>
+          <PasswordChangeForm addToast={addToast} />
         </div>
       </form>
     </div>
+  );
+};
+
+// Password Change Form Component
+const PasswordChangeForm = ({ addToast }) => {
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      addToast('Mật khẩu mới không khớp', 'error');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      addToast('Mật khẩu mới phải có ít nhất 8 ký tự', 'error');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await profileAPI.changePassword(
+        passwordData.oldPassword,
+        passwordData.newPassword
+      );
+      if (response.code === 1000) {
+        addToast('Đổi mật khẩu thành công!', 'success');
+        setPasswordData({ oldPassword: '', newPassword: '', confirmPassword: '' });
+      } else {
+        addToast(response.message || 'Đổi mật khẩu thất bại', 'error');
+      }
+    } catch (error) {
+      addToast(error.message || 'Có lỗi xảy ra khi đổi mật khẩu', 'error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="form-row">
+        <div className="form-group">
+          <label htmlFor="oldPassword">Mật khẩu cũ:</label>
+          <input
+            type="password"
+            id="oldPassword"
+            name="oldPassword"
+            value={passwordData.oldPassword}
+            onChange={handleChange}
+            placeholder="Nhập mật khẩu cũ"
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="newPassword">Mật khẩu mới:</label>
+          <input
+            type="password"
+            id="newPassword"
+            name="newPassword"
+            value={passwordData.newPassword}
+            onChange={handleChange}
+            placeholder="Nhập mật khẩu mới"
+          />
+        </div>
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="confirmPassword">Xác nhận mật khẩu:</label>
+        <input
+          type="password"
+          id="confirmPassword"
+          name="confirmPassword"
+          value={passwordData.confirmPassword}
+          onChange={handleChange}
+          placeholder="Nhập lại mật khẩu mới"
+        />
+      </div>
+
+      <div className="form-actions">
+        <button type="submit" className="btn-save" disabled={submitting}>
+          {submitting ? 'Đang đổi...' : 'Đổi mật khẩu'}
+        </button>
+      </div>
+    </form>
   );
 };
 

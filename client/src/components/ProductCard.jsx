@@ -7,7 +7,6 @@ const ProductCard = ({ product, onViewDetail }) => {
         <img src={product.img} alt={product.name} className="w-full aspect-square object-cover" />
         <div className="product-action absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 flex justify-center py-2 space-x-4 opacity-0 transform translate-y-4 transition-all duration-300">
           <button className="text-white hover:text-red-500 bg-transparent border-none"><i className="fas fa-cart-plus"></i></button>
-          <button className="text-white hover:text-red-500 bg-transparent border-none"><i className="far fa-heart"></i></button>
         </div>
       </div>
       <div className="p-3 text-center">

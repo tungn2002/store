@@ -14,12 +14,12 @@ const Footer = () => {
 
       <footer className="bg-white pt-12 pb-6 border-t border-gray-200">
         <div className="max-w-[1200px] mx-auto px-12 grid grid-cols-1 md:grid-cols-4 gap-12 mb-10 text-sm">
-          <div><div className="text-2xl font-bold text-black mb-6">GIAY<span className="text-red-600">X</span>SHOP</div><p>Hệ thống giày Sneaker hàng đầu Việt Nam.</p></div>
+          <div><div className="text-2xl font-bold text-black mb-6">Z<span className="text-red-600">FASHION</span></div><p>Hệ thống giày Sneaker hàng đầu Việt Nam.</p></div>
           <div><h4 className="font-bold uppercase mb-6">Chính sách</h4><ul className="space-y-3"><li>Bảo mật</li><li>Đổi trả</li></ul></div>
           <div><h4 className="font-bold uppercase mb-6">Hỗ trợ</h4><ul className="space-y-3"><li>Hướng dẫn chọn size</li><li>Hệ thống cửa hàng</li></ul></div>
           <div><h4 className="font-bold uppercase mb-6">Đăng ký</h4><div className="flex"><input type="text" placeholder="Email..." className="bg-gray-100 px-4 py-2 w-full" /><button className="bg-black text-white px-4 py-2 font-bold">GỬI</button></div></div>
         </div>
-        <p className="text-center text-xs text-gray-400">&copy; 2024 Giày Xshop. All rights reserved.</p>
+        <p className="text-center text-xs text-gray-400">&copy; 2024 ZFashion. All rights reserved.</p>
       </footer>
     </>
   );
