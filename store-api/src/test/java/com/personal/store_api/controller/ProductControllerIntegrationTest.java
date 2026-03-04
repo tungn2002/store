@@ -20,6 +20,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -568,5 +569,217 @@ public class ProductControllerIntegrationTest {
                 .andExpect(jsonPath("$.result[0].price").value(5000000))
                 .andExpect(jsonPath("$.result[4].name").value("Product 1"))
                 .andExpect(jsonPath("$.result[4].price").value(1000000));
+    }
+
+    @Test
+    void testGetProductDetail_WithValidId_ShouldReturnProductDetailWithoutAuth() throws Exception {
+        Category category = categoryRepository.save(Category.builder()
+                .name("Electronics")
+                .image("http://example.com/cat.jpg")
+                .build());
+
+        Brand brand = brandRepository.save(Brand.builder()
+                .name("Nike")
+                .build());
+
+        Product product = productRepository.save(Product.builder()
+                .name("Test Product")
+                .description("Test Description")
+                .category(category)
+                .brand(brand)
+                .image("http://example.com/product.jpg")
+                .build());
+
+        ProductVariant variant1 = productVariantRepository.save(ProductVariant.builder()
+                .product(product)
+                .size("M")
+                .color("Red")
+                .image("http://example.com/variant1.jpg")
+                .price(BigDecimal.valueOf(1000000))
+                .stockQuantity(10)
+                .build());
+
+        ProductVariant variant2 = productVariantRepository.save(ProductVariant.builder()
+                .product(product)
+                .size("L")
+                .color("Blue")
+                .image("http://example.com/variant2.jpg")
+                .price(BigDecimal.valueOf(1200000))
+                .stockQuantity(5)
+                .build());
+
+        // Test without authentication token (public endpoint)
+        mockMvc.perform(get("/products/" + product.getId() + "/detail")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.id").value(product.getId()))
+                .andExpect(jsonPath("$.result.name").value("Test Product"))
+                .andExpect(jsonPath("$.result.description").value("Test Description"))
+                .andExpect(jsonPath("$.result.category.name").value("Electronics"))
+                .andExpect(jsonPath("$.result.brand.name").value("Nike"))
+                .andExpect(jsonPath("$.result.image").value("http://example.com/product.jpg"))
+                .andExpect(jsonPath("$.result.variantImages").isArray())
+                .andExpect(jsonPath("$.result.variantImages.length()").value(2))
+                .andExpect(jsonPath("$.result.price").value(1000000))
+                .andExpect(jsonPath("$.result.colors").isArray())
+                .andExpect(jsonPath("$.result.colors.length()").value(2))
+                .andExpect(jsonPath("$.result.sizes").isArray())
+                .andExpect(jsonPath("$.result.sizes.length()").value(2))
+                .andExpect(jsonPath("$.result.prices").isArray())
+                .andExpect(jsonPath("$.result.prices.length()").value(2))
+                .andExpect(jsonPath("$.result.totalStock").value(15));
+    }
+
+    @Test
+    void testGetProductDetail_WithInvalidId_ShouldReturnNotFound() throws Exception {
+        mockMvc.perform(get("/products/999/detail")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testGetProductDetail_WithNoVariants_ShouldReturnEmptyArrays() throws Exception {
+        Category category = categoryRepository.save(Category.builder()
+                .name("Electronics")
+                .image("http://example.com/cat.jpg")
+                .build());
+
+        Brand brand = brandRepository.save(Brand.builder()
+                .name("Nike")
+                .build());
+
+        Product product = productRepository.save(Product.builder()
+                .name("Product Without Variants")
+                .description("No variants")
+                .category(category)
+                .brand(brand)
+                .image("http://example.com/product.jpg")
+                .build());
+
+        mockMvc.perform(get("/products/" + product.getId() + "/detail")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.id").value(product.getId()))
+                .andExpect(jsonPath("$.result.name").value("Product Without Variants"))
+                .andExpect(jsonPath("$.result.variantImages").isArray())
+                .andExpect(jsonPath("$.result.variantImages.length()").value(0))
+                .andExpect(jsonPath("$.result.price").doesNotExist())
+                .andExpect(jsonPath("$.result.colors").isArray())
+                .andExpect(jsonPath("$.result.colors.length()").value(0))
+                .andExpect(jsonPath("$.result.sizes").isArray())
+                .andExpect(jsonPath("$.result.sizes.length()").value(0))
+                .andExpect(jsonPath("$.result.prices").isArray())
+                .andExpect(jsonPath("$.result.prices.length()").value(0))
+                .andExpect(jsonPath("$.result.totalStock").value(0));
+    }
+
+    @Test
+    void testGetProductDetail_WithMultipleVariantsSameColor_ShouldReturnUniqueColors() throws Exception {
+        Category category = categoryRepository.save(Category.builder()
+                .name("Clothing")
+                .image("http://example.com/cat.jpg")
+                .build());
+
+        Brand brand = brandRepository.save(Brand.builder()
+                .name("Adidas")
+                .build());
+
+        Product product = productRepository.save(Product.builder()
+                .name("T-Shirt")
+                .description("Multiple sizes same color")
+                .category(category)
+                .brand(brand)
+                .image("http://example.com/tshirt.jpg")
+                .build());
+
+        productVariantRepository.save(ProductVariant.builder()
+                .product(product)
+                .size("S")
+                .color("Black")
+                .price(BigDecimal.valueOf(500000))
+                .stockQuantity(20)
+                .build());
+
+        productVariantRepository.save(ProductVariant.builder()
+                .product(product)
+                .size("M")
+                .color("Black")
+                .price(BigDecimal.valueOf(500000))
+                .stockQuantity(15)
+                .build());
+
+        productVariantRepository.save(ProductVariant.builder()
+                .product(product)
+                .size("L")
+                .color("Black")
+                .price(BigDecimal.valueOf(500000))
+                .stockQuantity(10)
+                .build());
+
+        mockMvc.perform(get("/products/" + product.getId() + "/detail")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.colors").isArray())
+                .andExpect(jsonPath("$.result.colors.length()").value(1))
+                .andExpect(jsonPath("$.result.colors[0]").value("Black"))
+                .andExpect(jsonPath("$.result.sizes").isArray())
+                .andExpect(jsonPath("$.result.sizes.length()").value(3))
+                .andExpect(jsonPath("$.result.totalStock").value(45));
+    }
+
+    @Test
+    void testGetProductDetail_WithNullVariantImages_ShouldFilterEmptyImages() throws Exception {
+        Category category = categoryRepository.save(Category.builder()
+                .name("Electronics")
+                .image("http://example.com/cat.jpg")
+                .build());
+
+        Brand brand = brandRepository.save(Brand.builder()
+                .name("Sony")
+                .build());
+
+        Product product = productRepository.save(Product.builder()
+                .name("Headphones")
+                .description("Some variants without images")
+                .category(category)
+                .brand(brand)
+                .image("http://example.com/headphones.jpg")
+                .build());
+
+        productVariantRepository.save(ProductVariant.builder()
+                .product(product)
+                .size("One Size")
+                .color("Black")
+                .image("http://example.com/headphones-black.jpg")
+                .price(BigDecimal.valueOf(2000000))
+                .stockQuantity(8)
+                .build());
+
+        productVariantRepository.save(ProductVariant.builder()
+                .product(product)
+                .size("One Size")
+                .color("White")
+                .image(null)
+                .price(BigDecimal.valueOf(2000000))
+                .stockQuantity(5)
+                .build());
+
+        productVariantRepository.save(ProductVariant.builder()
+                .product(product)
+                .size("One Size")
+                .color("Silver")
+                .image("")
+                .price(BigDecimal.valueOf(2200000))
+                .stockQuantity(3)
+                .build());
+
+        mockMvc.perform(get("/products/" + product.getId() + "/detail")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result.variantImages").isArray())
+                .andExpect(jsonPath("$.result.variantImages.length()").value(1))
+                .andExpect(jsonPath("$.result.variantImages[0]").value("http://example.com/headphones-black.jpg"))
+                .andExpect(jsonPath("$.result.colors").isArray())
+                .andExpect(jsonPath("$.result.colors.length()").value(3));
     }
 }

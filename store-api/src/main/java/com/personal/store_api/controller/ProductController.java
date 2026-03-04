@@ -4,6 +4,7 @@ import com.personal.store_api.dto.ApiResponse;
 import com.personal.store_api.dto.request.ProductRequest;
 import com.personal.store_api.dto.response.NewProductResponse;
 import com.personal.store_api.dto.response.PaginatedResponse;
+import com.personal.store_api.dto.response.ProductDetailResponse;
 import com.personal.store_api.dto.response.ProductResponse;
 import com.personal.store_api.service.ProductService;
 import jakarta.validation.Valid;
@@ -58,6 +59,17 @@ public class ProductController {
         ProductResponse response = productService.getProduct(id);
 
         ApiResponse<ProductResponse> apiResponse = ApiResponse.<ProductResponse>builder()
+                .result(response)
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @GetMapping("/{id}/detail")
+    public ResponseEntity<ApiResponse<ProductDetailResponse>> getProductDetail(@PathVariable Integer id) {
+        ProductDetailResponse response = productService.getProductDetail(id);
+
+        ApiResponse<ProductDetailResponse> apiResponse = ApiResponse.<ProductDetailResponse>builder()
                 .result(response)
                 .build();
 

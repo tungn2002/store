@@ -3,13 +3,17 @@ package com.personal.store_api.service;
 import com.personal.store_api.dto.request.ProductRequest;
 import com.personal.store_api.dto.response.NewProductResponse;
 import com.personal.store_api.dto.response.PaginatedResponse;
+import com.personal.store_api.dto.response.ProductDetailResponse;
 import com.personal.store_api.dto.response.ProductResponse;
 import com.personal.store_api.entity.Category;
 import com.personal.store_api.entity.Brand;
 import com.personal.store_api.entity.Product;
+import com.personal.store_api.entity.ProductVariant;
 import com.personal.store_api.enums.ErrorCode;
 import com.personal.store_api.exception.AppException;
 import com.personal.store_api.mapper.ProductMapper;
+import com.personal.store_api.mapper.CategoryMapper;
+import com.personal.store_api.mapper.BrandMapper;
 import com.personal.store_api.repository.ProductRepository;
 import com.personal.store_api.repository.CategoryRepository;
 import com.personal.store_api.repository.BrandRepository;
@@ -38,6 +42,8 @@ public class ProductService {
     final CategoryRepository categoryRepository;
     final BrandRepository brandRepository;
     final CloudinaryService cloudinaryService;
+    final CategoryMapper categoryMapper;
+    final BrandMapper brandMapper;
 
     @Transactional(readOnly = true)
     public PaginatedResponse<ProductResponse> getProducts(int page, int size, String sortBy, 
@@ -105,6 +111,70 @@ public class ProductService {
                             .build();
                 })
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ProductDetailResponse getProductDetail(Integer id) {
+        Product product = productRepository.findByIdWithVariants(id)
+                .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        // Collect all variant images (excluding null/empty)
+        List<String> variantImages = product.getVariants().stream()
+                .map(ProductVariant::getImage)
+                .filter(img -> img != null && !img.isEmpty())
+                .distinct()
+                .toList();
+
+        // Get price from first available variant
+        BigDecimal price = product.getVariants().stream()
+                .filter(v -> v.getPrice() != null)
+                .findFirst()
+                .map(ProductVariant::getPrice)
+                .orElse(null);
+
+        // Collect all unique colors
+        List<String> colors = product.getVariants().stream()
+                .map(ProductVariant::getColor)
+                .filter(c -> c != null && !c.isEmpty())
+                .distinct()
+                .toList();
+
+        // Collect all unique sizes
+        List<String> sizes = product.getVariants().stream()
+                .map(ProductVariant::getSize)
+                .filter(s -> s != null && !s.isEmpty())
+                .distinct()
+                .toList();
+
+        // Collect all variant prices with stock info
+        List<ProductDetailResponse.VariantPriceStock> prices = product.getVariants().stream()
+                .map(variant -> ProductDetailResponse.VariantPriceStock.builder()
+                        .color(variant.getColor())
+                        .size(variant.getSize())
+                        .price(variant.getPrice())
+                        .stock(variant.getStockQuantity())
+                        .build())
+                .toList();
+
+        // Calculate total stock
+        Integer totalStock = product.getVariants().stream()
+                .mapToInt(variant -> variant.getStockQuantity() != null ? variant.getStockQuantity() : 0)
+                .sum();
+
+        return ProductDetailResponse.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .category(categoryMapper.toCategoryResponse(product.getCategory()))
+                .brand(brandMapper.toBrandResponse(product.getBrand()))
+                .image(product.getImage())
+                .variantImages(variantImages)
+                .price(price)
+                .colors(colors)
+                .sizes(sizes)
+                .prices(prices)
+                .totalStock(totalStock)
+                .build();
     }
 
     @Transactional

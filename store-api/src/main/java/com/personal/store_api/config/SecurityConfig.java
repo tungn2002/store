@@ -32,7 +32,8 @@ public class SecurityConfig {
     };
 
     private final String[] PUBLIC_GET_ENDPOINTS = {
-            "/products/latest"
+            "/products/latest",
+            "/products/*/detail"
     };
 
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
