@@ -35,7 +35,9 @@ public class SecurityConfig {
             "/products/latest",
             "/products/*/detail",
             "/brands/all",
-            "/categories/all"
+            "/categories/all",
+            "/search",
+            "/search/suggest"
     };
 
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;

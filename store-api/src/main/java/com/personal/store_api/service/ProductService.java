@@ -44,6 +44,7 @@ public class ProductService {
     final CloudinaryService cloudinaryService;
     final CategoryMapper categoryMapper;
     final BrandMapper brandMapper;
+    final ElasticsearchService elasticsearchService;
 
     @Transactional(readOnly = true)
     public PaginatedResponse<ProductResponse> getProducts(int page, int size, String sortBy, 
@@ -182,7 +183,7 @@ public class ProductService {
     public ProductResponse createProduct(ProductRequest request) throws IOException {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-        
+
         Brand brand = brandRepository.findById(request.getBrandId())
                 .orElseThrow(() -> new AppException(ErrorCode.BRAND_NOT_FOUND));
 
@@ -199,6 +200,10 @@ public class ProductService {
         }
 
         Product savedProduct = productRepository.save(product);
+        
+        // Index to Elasticsearch
+        elasticsearchService.indexProduct(savedProduct);
+        
         return productMapper.toProductResponse(savedProduct);
     }
 
@@ -209,7 +214,7 @@ public class ProductService {
 
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
-        
+
         Brand brand = brandRepository.findById(request.getBrandId())
                 .orElseThrow(() -> new AppException(ErrorCode.BRAND_NOT_FOUND));
 
@@ -225,6 +230,10 @@ public class ProductService {
         }
 
         Product updatedProduct = productRepository.save(product);
+        
+        // Update in Elasticsearch
+        elasticsearchService.updateProduct(updatedProduct);
+        
         return productMapper.toProductResponse(updatedProduct);
     }
 
@@ -234,6 +243,10 @@ public class ProductService {
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
         deleteOldImage(product.getImage());
+        
+        // Delete from Elasticsearch
+        elasticsearchService.deleteProduct(id);
+        
         productRepository.delete(product);
     }
 

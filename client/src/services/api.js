@@ -138,6 +138,34 @@ export const categoryAPI = {
   },
 };
 
+// Search API (Elasticsearch)
+export const searchAPI = {
+  searchProducts: async (params) => {
+    const queryParams = new URLSearchParams();
+    if (params.query) queryParams.append('query', params.query);
+    if (params.minPrice) queryParams.append('minPrice', params.minPrice);
+    if (params.maxPrice) queryParams.append('maxPrice', params.maxPrice);
+    if (params.brand) queryParams.append('brand', params.brand);
+    if (params.category) queryParams.append('category', params.category);
+    if (params.page !== undefined) queryParams.append('page', params.page);
+    if (params.size !== undefined) queryParams.append('size', params.size);
+    if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params.sortDirection) queryParams.append('sortDirection', params.sortDirection);
+
+    const data = await apiCall(`/search?${queryParams.toString()}`, {
+      method: 'GET',
+    }, false); // Không cần auth
+    return data;
+  },
+
+  suggestProducts: async (prefix) => {
+    const data = await apiCall(`/search/suggest?prefix=${encodeURIComponent(prefix)}`, {
+      method: 'GET',
+    }, false); // Không cần auth
+    return data;
+  },
+};
+
 // Cart API
 export const cartAPI = {
   addToCart: async (productVariantId, quantity = 1) => {
@@ -179,5 +207,6 @@ export default {
   productAPI,
   brandAPI,
   categoryAPI,
+  searchAPI,
   authStorage,
 };

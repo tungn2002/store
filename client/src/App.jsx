@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { BrowserRouter, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import './App.css';
 import Cart from './components/Cart';
 import Topbar from './components/Topbar';
@@ -22,12 +23,22 @@ const products = [
   { id: 5, name: "Vans Old Skool Black/White", price: 1100000, img: "https://images.unsplash.com/photo-1595341888016-a392ef81b7de?auto=format&fit=crop&w=600&q=80", gallery: ["https://images.unsplash.com/photo-1595341888016-a392ef81b7de"] }
 ];
 
-function App() {
-  const [currentView, setCurrentView] = useState('home');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState(null);
+function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const location = useLocation();
+
+  // Get productId from path /product/:id
+  const isProductDetail = location.pathname.startsWith('/product/');
+  const productId = isProductDetail 
+    ? location.pathname.split('/product/')[1] 
+    : searchParams.get('productId');
+
+  // Get view from URL query param
+  const currentView = isProductDetail ? 'detail' : (searchParams.get('view') || 'home');
+  const categoryName = searchParams.get('category') || '';
 
   const addToast = (message, type = 'info') => {
     const id = Date.now();
@@ -38,44 +49,33 @@ function App() {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
 
-  const toggleView = (view, categoryName = '') => {
-    setCurrentView(view);
-    if (view === 'category') {
-      setSelectedCategory(categoryName);
-    } else if (view === 'detail') {
-      // Store productId for API call
-      setSelectedProduct(categoryName);
-    }
-    window.scrollTo(0, 0);
-  };
-
   const handleLogin = () => {
     setIsLoggedIn(true);
-    toggleView('home');
+    navigate('/');
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
-    toggleView('home');
+    navigate('/');
   };
 
   const viewDetail = (productId) => {
-    toggleView('detail', productId);
+    navigate(`/product/${productId}`);
   };
 
   const handleProfileClick = () => {
     if (!isLoggedIn) {
-      toggleView('login');
+      navigate('/login');
     } else {
-      toggleView('profile');
+      navigate('/profile');
     }
   };
 
   const handleCartClick = () => {
     if (!isLoggedIn) {
-      toggleView('login');
+      navigate('/login');
     } else {
-      toggleView('cart');
+      navigate('/cart');
     }
   };
 
@@ -84,21 +84,21 @@ function App() {
       case 'home':
         return (
           <>
-            <Hero toggleView={toggleView} />
-            <HomeCategories toggleView={toggleView} />
-            <ProductGrid toggleView={toggleView} />
+            <Hero toggleView={(view, cat) => navigate(`/?view=category&category=${encodeURIComponent(cat)}`)} />
+            <HomeCategories toggleView={(view, cat) => navigate(`/?view=category&category=${encodeURIComponent(cat)}`)} />
+            <ProductGrid toggleView={(view, cat) => navigate(`/?view=category&category=${encodeURIComponent(cat)}`)} />
           </>
         );
       case 'category':
-        return <CategoryView categoryName={selectedCategory} products={products.concat(products)} onViewDetail={viewDetail} toggleView={toggleView} />;
+        return <CategoryView />;
       case 'detail':
-        return <ProductDetail productId={selectedProduct} toggleView={toggleView} addToast={addToast} />;
+        return <ProductDetail productId={productId} toggleView={() => navigate(-1)} addToast={addToast} />;
       case 'profile':
-        return <UserProfile onClose={() => toggleView('home')} onLogout={handleLogout} addToast={addToast} />;
+        return <UserProfile onClose={() => navigate('/')} onLogout={handleLogout} addToast={addToast} />;
       case 'favorites':
-        return <Favorites toggleView={toggleView} />;
+        return <Favorites toggleView={(view) => navigate(`/${view}`)} />;
       case 'cart':
-        return <Cart toggleView={toggleView} />;
+        return <Cart toggleView={(view) => navigate(`/${view}`)} />;
       case 'login':
         return <Login toggleView={handleLogin} addToast={addToast} />;
       default:
@@ -109,8 +109,8 @@ function App() {
   return (
     <div className="bg-gray-50 text-gray-800">
       <ToastContainer toasts={toasts} removeToast={removeToast} />
-      <Topbar toggleView={toggleView} />
-      <Header currentView={currentView} toggleView={toggleView} isLoggedIn={isLoggedIn} onProfileClick={handleProfileClick} onLogout={handleLogout} onCartClick={handleCartClick} />
+      <Topbar toggleView={(view, cat) => navigate(`/?view=category&category=${encodeURIComponent(cat)}`)} />
+      <Header currentView={currentView} toggleView={(view, cat) => navigate(`/?view=category&category=${encodeURIComponent(cat)}`)} isLoggedIn={isLoggedIn} onProfileClick={handleProfileClick} onLogout={handleLogout} onCartClick={handleCartClick} />
       {renderContent()}
       <Footer />
     </div>
@@ -131,5 +131,13 @@ const ToastContainer = ({ toasts, removeToast }) => {
     </div>
   );
 };
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
+  );
+}
 
 export default App;

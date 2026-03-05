@@ -51,6 +51,6 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.variants WHERE p.id = :id")
     Optional<Product> findByIdWithVariants(@Param("id") Integer id);
 
-    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.variants v WHERE v.id = (SELECT MIN(v2.id) FROM ProductVariant v2 WHERE v2.product = p) ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Product p ORDER BY p.createdAt DESC")
     List<Product> findTop5ByOrderByCreatedAtDesc();
 }
