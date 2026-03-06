@@ -20,8 +20,10 @@ const Header = ({ currentView, isLoggedIn, onProfileClick, onLogout, onCartClick
 
   const handleUserClick = () => {
     if (!authStorage.isAuthenticated()) {
+      // Navigate to login view - no dropdown shown
       navigate('/?view=login');
     } else {
+      // Only show dropdown when logged in
       setShowUserMenu(!showUserMenu);
     }
   };
@@ -34,6 +36,15 @@ const Header = ({ currentView, isLoggedIn, onProfileClick, onLogout, onCartClick
   const handleLogoutClick = () => {
     onLogout();
     setShowUserMenu(false);
+  };
+
+  const handleCartClick = () => {
+    if (!authStorage.isAuthenticated()) {
+      // Navigate to login view
+      navigate('/?view=login');
+    } else {
+      onCartClick();
+    }
   };
   return (
     <header className="bg-white shadow-sm sticky-header">
@@ -62,7 +73,7 @@ const Header = ({ currentView, isLoggedIn, onProfileClick, onLogout, onCartClick
             >
               <i className="far fa-user"></i>
             </a>
-            {showUserMenu && (
+            {isLoggedIn && showUserMenu && (
               <div className="user-dropdown-menu">
                 <button onClick={handleProfileClick}>
                   <i className="fas fa-user"></i> Thông tin cá nhân
@@ -73,9 +84,8 @@ const Header = ({ currentView, isLoggedIn, onProfileClick, onLogout, onCartClick
               </div>
             )}
           </div>
-          <a href="#" onClick={(e) => { e.preventDefault(); onCartClick(); }} className="relative hover:text-red-600 cursor-pointer">
+          <a href="#" onClick={(e) => { e.preventDefault(); handleCartClick(); }} className="relative hover:text-red-600 cursor-pointer">
             <i className="fas fa-shopping-cart"></i>
-            <span className="absolute -top-2 -right-2 bg-red-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">2</span>
           </a>
         </div>
       </div>

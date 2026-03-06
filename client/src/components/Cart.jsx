@@ -1,108 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { cartAPI, productAPI, authStorage } from '../services/api';
 import './Cart.css';
 
-const Cart = ({ toggleView }) => {
-  // Sample cart data - in a real app this would come from state/context
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: "Nike Air Max 90 Red Edition",
-      price: 1250000,
-      quantity: 1,
-      size: "42",
-      color: "Red",
-      img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80",
-      selected: true
-    },
-    {
-      id: 2,
-      name: "Adidas Forum Low Classic White",
-      price: 1850000,
-      quantity: 2,
-      size: "40",
-      color: "White",
-      img: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=600&q=80",
-      selected: true
-    },
-    {
-      id: 4,
-      name: "Nike Dunk Low Retro Panda",
-      price: 2450000,
-      quantity: 1,
-      size: "43",
-      color: "Black/White",
-      img: "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?auto=format&fit=crop&w=600&q=80",
-      selected: false
-    }
-  ]);
-
+const Cart = ({ isLoggedIn, addToast }) => {
+  const navigate = useNavigate();
+  const [cartItems, setCartItems] = useState([]);
+  const [selectedItems, setSelectedItems] = useState({}); // Client-side selection only
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showSizeColorPopup, setShowSizeColorPopup] = useState(null);
   const [selectedSizeColor, setSelectedSizeColor] = useState({});
+  const [productVariants, setProductVariants] = useState([]); // Store all variants for selected product
+  const [cartSummary, setCartSummary] = useState({
+    subtotal: 0,
+    total: 0
+  });
+  const [updateTrigger, setUpdateTrigger] = useState(0); // Force re-render trigger
 
-  // Calculate total
-  const selectedItems = cartItems.filter(item => item.selected);
-  const subtotal = selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = 30000; // Fixed shipping cost
-  const total = subtotal + shipping;
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoggedIn && !authStorage.isAuthenticated()) {
+      navigate('/?view=login');
+    }
+  }, [isLoggedIn, navigate]);
 
-  // Handle quantity changes
-  const updateQuantity = (id, newQuantity) => {
-    if (newQuantity < 1) return; // Prevent quantities less than 1
+  // Log cart items changes
+  useEffect(() => {
+    console.log('Cart items updated:', cartItems);
+  }, [cartItems]);
 
-    setCartItems(items =>
-      items.map(item =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
-    );
+  // Fetch cart data from API
+  const fetchCart = async () => {
+    try {
+      setLoading(true);
+      const response = await cartAPI.getCart();
+      if (response && response.result) {
+        const items = response.result.items || [];
+        setCartItems(items);
+        setCartSummary({
+          subtotal: response.result.subtotal || 0,
+          total: response.result.subtotal || 0
+        });
+        // Initialize all items as NOT selected by default (client-side only)
+        const initialSelection = {};
+        items.forEach(item => {
+          initialSelection[item.cartId] = false;
+        });
+        setSelectedItems(initialSelection);
+      }
+    } catch (err) {
+      setError(err.message || 'Không thể tải giỏ hàng');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Toggle item selection
-  const toggleItemSelection = (id) => {
-    setCartItems(items =>
-      items.map(item =>
-        item.id === id ? { ...item, selected: !item.selected } : item
-      )
-    );
-  };
+  useEffect(() => {
+    fetchCart();
+  }, []);
 
-  // Remove item from cart
-  const removeItem = (id) => {
-    setCartItems(items => items.filter(item => item.id !== id));
-  };
-
-  // Toggle all items selection
-  const toggleSelectAll = () => {
-    const allSelected = selectedItems.length === cartItems.length;
-    setCartItems(items =>
-      items.map(item => ({ ...item, selected: !allSelected }))
-    );
-  };
-
-  // Open size/color popup
-  const openSizeColorPopup = (item) => {
-    setSelectedSizeColor({
-      id: item.id,
-      size: item.size,
-      color: item.color
+  // Calculate selected total based on client-side selection
+  const calculateSelectedTotal = () => {
+    let total = 0;
+    cartItems.forEach(item => {
+      if (selectedItems[item.cartId]) {
+        total += item.price * item.quantity;
+      }
     });
-    setShowSizeColorPopup(true);
+    return total;
   };
 
-  // Save size/color changes
-  const saveSizeColorChanges = () => {
-    setCartItems(items =>
-      items.map(item =>
-        item.id === selectedSizeColor.id
-          ? { ...item, size: selectedSizeColor.size, color: selectedSizeColor.color }
-          : item
-      )
-    );
-    setShowSizeColorPopup(false);
-  };
-
-  // Available sizes and colors for selection
-  const sizes = ["36", "37", "38", "39", "40", "41", "42", "43", "44", "45"];
-  const colors = ["Red", "Blue", "Green", "Black", "White", "Yellow", "Purple", "Orange"];
+  const selectedTotal = calculateSelectedTotal();
+  const finalTotal = selectedTotal;
+  const selectedCount = Object.values(selectedItems).filter(v => v).length;
 
   // Format currency function
   const formatCurrency = (amount) => {
@@ -112,12 +83,218 @@ const Cart = ({ toggleView }) => {
     }).format(amount);
   };
 
+  // Handle quantity changes - cannot be 0
+  const updateQuantity = async (cartId, newQuantity) => {
+    if (newQuantity < 1) {
+      addToast('Số lượng phải lớn hơn 0', 'error');
+      return;
+    }
+
+    try {
+      // Call API to update quantity
+      const response = await cartAPI.updateCartItem(cartId, newQuantity);
+      
+      if (response && response.result) {
+        // Update local state with API response
+        setCartItems(items =>
+          items.map(item =>
+            item.cartId === cartId 
+              ? { 
+                  ...item, 
+                  quantity: newQuantity, 
+                  subtotal: response.result.subtotal || (item.price * newQuantity)
+                } 
+              : item
+          )
+        );
+        
+        // Update cart summary
+        setCartSummary(prev => ({
+          subtotal: prev.subtotal - 
+            (cartItems.find(i => i.cartId === cartId)?.subtotal || 0) + 
+            (response.result.subtotal || 0),
+          total: prev.subtotal - 
+            (cartItems.find(i => i.cartId === cartId)?.subtotal || 0) + 
+            (response.result.subtotal || 0)
+        }));
+        
+        addToast('Đã cập nhật số lượng', 'success');
+      }
+    } catch (err) {
+      addToast(err.message || 'Không thể cập nhật số lượng', 'error');
+    }
+  };
+
+  // Toggle item selection (client-side only)
+  const toggleItemSelection = (cartId) => {
+    setSelectedItems(prev => ({
+      ...prev,
+      [cartId]: !prev[cartId]
+    }));
+  };
+
+  // Toggle all items selection (client-side only)
+  const toggleSelectAll = () => {
+    const allSelected = cartItems.every(item => selectedItems[item.cartId]);
+    const newSelection = {};
+    cartItems.forEach(item => {
+      newSelection[item.cartId] = !allSelected;
+    });
+    setSelectedItems(newSelection);
+  };
+
+  // Remove item from cart
+  const removeItem = async (cartId) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?')) {
+      return;
+    }
+
+    try {
+      await cartAPI.deleteCartItem(cartId);
+      setCartItems(items => items.filter(item => item.cartId !== cartId));
+      // Remove from selection
+      setSelectedItems(prev => {
+        const newSelection = { ...prev };
+        delete newSelection[cartId];
+        return newSelection;
+      });
+      addToast('Đã xóa sản phẩm khỏi giỏ hàng', 'success');
+    } catch (err) {
+      addToast(err.message || 'Không thể xóa sản phẩm', 'error');
+    }
+  };
+
+  // Open size/color popup with all variants
+  const openSizeColorPopup = async (item) => {
+    setSelectedSizeColor({
+      cartId: item.cartId,
+      productVariantId: item.productVariantId,
+      size: item.size,
+      color: item.color
+    });
+
+    // Fetch all variants for this product from cart item
+    try {
+      const response = await cartAPI.getCartProductVariants(item.cartId);
+      if (response && response.result) {
+        const variants = response.result.map(v => ({
+          id: v.id,
+          size: v.size,
+          color: v.color,
+          price: v.price,
+          stockQuantity: v.stockQuantity,
+          image: v.image
+        }));
+        setProductVariants(variants);
+      }
+    } catch (err) {
+      console.error('Failed to fetch product variants:', err);
+      setProductVariants([]);
+    }
+
+    setShowSizeColorPopup(true);
+  };
+
+  // Save size/color changes - check if variant already exists in cart and call API
+  const saveSizeColorChanges = async () => {
+    // Find the selected variant details
+    const selectedVariant = productVariants.find(
+      v => v.size === selectedSizeColor.size && v.color === selectedSizeColor.color
+    );
+    
+    if (!selectedVariant) {
+      addToast('Variant không tồn tại!', 'error');
+      return;
+    }
+    
+    // Check if current selection
+    if (selectedVariant.id === selectedSizeColor.productVariantId) {
+      setShowSizeColorPopup(false);
+      return;
+    }
+    
+    // Check if the selected variant already exists in cart (excluding current item)
+    const existingItem = cartItems.find(item => 
+      item.productVariantId === selectedVariant.id && 
+      item.cartId !== selectedSizeColor.cartId
+    );
+    
+    if (existingItem) {
+      addToast(`Sản phẩm với Size ${selectedSizeColor.size} - Color ${selectedSizeColor.color} đã có trong giỏ hàng!`, 'error');
+      return;
+    }
+    
+    try {
+      // Call API to update cart item variant
+      const response = await cartAPI.updateCartItemVariant(
+        selectedSizeColor.cartId, 
+        selectedVariant.id
+      );
+      
+      if (response && response.result) {
+        // Update local state with API response
+        const updatedItems = cartItems.map(item => {
+          if (item.cartId === selectedSizeColor.cartId) {
+            return {
+              ...item,
+              size: selectedSizeColor.size,
+              color: selectedSizeColor.color,
+              productVariantId: selectedVariant.id,
+              price: selectedVariant.price || item.price,
+              variantImage: selectedVariant.image || item.variantImage,
+              subtotal: (selectedVariant.price || item.price) * item.quantity
+            };
+          }
+          return item;
+        });
+        
+        setCartItems(updatedItems);
+        setShowSizeColorPopup(false);
+        addToast('Đã cập nhật size/color thành công!', 'success');
+      }
+    } catch (err) {
+      console.error('Failed to update cart variant:', err);
+      addToast(err.message || 'Không thể cập nhật size/color. Vui lòng thử lại.', 'error');
+    }
+  };
+
+  // Handle checkout
+  const handleCheckout = () => {
+    if (selectedCount === 0) {
+      addToast('Vui lòng chọn ít nhất một sản phẩm để thanh toán', 'error');
+      return;
+    }
+    addToast(`Thanh toán ${selectedCount} sản phẩm với tổng tiền: ${formatCurrency(finalTotal)}`, 'success');
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-[95%] mx-auto px-4 py-8 text-center">
+        <p className="text-xl text-gray-600">Đang tải giỏ hàng...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-[95%] mx-auto px-4 py-8 text-center">
+        <p className="text-xl text-red-600">{error}</p>
+        <button
+          onClick={() => toggleView('home')}
+          className="mt-4 bg-red-600 text-white px-6 py-3 rounded-md hover:bg-red-700"
+        >
+          Quay lại trang chủ
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-[95%] mx-auto px-4 md:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold">Giỏ hàng</h1>
         <button
-          onClick={() => toggleView('home')}
+          onClick={() => navigate('/')}
           className="text-gray-600 hover:text-gray-900"
         >
           ← Quay lại
@@ -125,10 +302,10 @@ const Cart = ({ toggleView }) => {
       </div>
 
       {cartItems.length === 0 ? (
-        <div className="text-center py-12">
+        <div className="text-center py-12 bg-white rounded-lg shadow-md">
           <p className="text-xl text-gray-600">Giỏ hàng của bạn đang trống</p>
           <button
-            onClick={() => toggleView('home')}
+            onClick={() => navigate('/')}
             className="mt-4 bg-red-600 text-white px-6 py-3 rounded-md hover:bg-red-700 transition-colors"
           >
             Mua sắm ngay
@@ -137,46 +314,48 @@ const Cart = ({ toggleView }) => {
       ) : (
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           {/* Cart header with select all */}
-          <div className="border-b p-4 flex items-center">
+          <div className="border-b p-4 flex items-center bg-gray-50">
             <input
               type="checkbox"
-              checked={selectedItems.length === cartItems.length && cartItems.length > 0}
+              checked={cartItems.length > 0 && cartItems.every(item => selectedItems[item.cartId])}
               onChange={toggleSelectAll}
               className="mr-4 h-5 w-5 text-red-600 rounded focus:ring-red-500"
             />
-            <span className="font-semibold">Sản phẩm</span>
+            <span className="font-semibold text-lg">Sản phẩm ({cartItems.length})</span>
           </div>
 
           {/* Cart items */}
           <div className="divide-y">
             {cartItems.map((item) => (
-              <div key={item.id} className="p-4 flex flex-col md:flex-row items-start">
+              <div key={item.cartId} className="p-4 flex flex-col md:flex-row items-start hover:bg-gray-50 transition-colors">
                 <input
                   type="checkbox"
-                  checked={item.selected}
-                  onChange={() => toggleItemSelection(item.id)}
+                  checked={!!selectedItems[item.cartId]}
+                  onChange={() => toggleItemSelection(item.cartId)}
                   className="mr-4 mt-1 h-5 w-5 text-red-600 rounded focus:ring-red-500"
                 />
 
                 <div className="flex-1 flex flex-col md:flex-row">
                   <img
-                    src={item.img}
-                    alt={item.name}
+                    src={item.variantImage || 'https://via.placeholder.com/100'}
+                    alt={item.productName}
                     className="w-24 h-24 object-cover rounded-md mb-4 md:mb-0 md:mr-6"
                   />
 
                   <div className="flex-1">
-                    <h3 className="font-semibold text-lg">{item.name}</h3>
+                    <h3 className="font-semibold text-lg">
+                      {item.productName || `Sản phẩm #${item.productVariantId}`}
+                    </h3>
                     <div className="flex flex-wrap items-center mt-2 gap-2">
                       <span className="bg-gray-100 px-3 py-1 rounded-full text-sm">
-                        Size: {item.size}
+                        Size: {item.size || 'Không có'}
                       </span>
                       <span className="bg-gray-100 px-3 py-1 rounded-full text-sm">
-                        Color: {item.color}
+                        Color: {item.color || 'Không có'}
                       </span>
                       <button
                         onClick={() => openSizeColorPopup(item)}
-                        className="text-blue-600 hover:text-blue-800 text-sm underline"
+                        className="text-blue-600 hover:text-blue-800 text-sm underline ml-2"
                       >
                         Thay đổi
                       </button>
@@ -185,15 +364,15 @@ const Cart = ({ toggleView }) => {
                     <div className="mt-4 flex items-center">
                       <div className="flex items-center border border-gray-300 rounded-md">
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.cartId, item.quantity - 1)}
                           className="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50"
                           disabled={item.quantity <= 1}
                         >
-                          -
+                          −
                         </button>
-                        <span className="px-4 py-1 min-w-[40px] text-center">{item.quantity}</span>
+                        <span className="px-4 py-1 min-w-[50px] text-center font-medium">{item.quantity}</span>
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.cartId, item.quantity + 1)}
                           className="px-3 py-1 text-gray-600 hover:bg-gray-100"
                         >
                           +
@@ -201,92 +380,181 @@ const Cart = ({ toggleView }) => {
                       </div>
 
                       <button
-                        onClick={() => removeItem(item.id)}
-                        className="ml-4 text-red-600 hover:text-red-800"
+                        onClick={() => removeItem(item.cartId)}
+                        className="ml-4 text-red-600 hover:text-red-800 font-medium"
                       >
-                        Xóa
+                        🗑 Xóa
                       </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 md:mt-0 md:ml-4 text-right font-semibold">
-                  {(item.price * item.quantity).toLocaleString('vi-VN')}₫
+                <div className="mt-4 md:mt-0 md:ml-4 text-right">
+                  <div className="font-semibold text-lg text-red-600">
+                    {(item.price * item.quantity).toLocaleString('vi-VN')}₫
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {item.price.toLocaleString('vi-VN')}₫ x {item.quantity}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
 
+          {/* Selected items summary */}
+          {selectedCount > 0 && (
+            <div className="border-t border-b p-4 bg-blue-50">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <span className="text-blue-800 font-medium">
+                    ✓ Đã chọn {selectedCount} sản phẩm
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-blue-800 font-medium">
+                    Tạm tính: {formatCurrency(selectedTotal)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Cart summary */}
           <div className="border-t p-6 bg-gray-50">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-lg font-semibold">Tổng cộng:</span>
-              <span className="text-xl font-bold text-red-600">{total.toLocaleString('vi-VN')}₫</span>
-            </div>
-
-            <div className="text-sm text-gray-600 mb-2">
-              Phí vận chuyển: {shipping.toLocaleString('vi-VN')}₫
+            <div className="space-y-3 mb-6">
+              {selectedCount > 0 && (
+                <div className="flex justify-between items-center text-blue-600 font-medium">
+                  <span>✓ Tạm tính ({selectedCount} sản phẩm đã chọn):</span>
+                  <span>{formatCurrency(selectedTotal)}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center">
+                <span className="text-lg font-semibold">Tổng cộng:</span>
+                <span className="text-2xl font-bold text-red-600">
+                  {selectedCount > 0 ? formatCurrency(finalTotal) : '0₫'}
+                </span>
+              </div>
+              {selectedCount > 0 && (
+                <div className="text-sm text-gray-500 text-right">
+                  (Bao gồm {selectedCount} sản phẩm đã chọn)
+                </div>
+              )}
+              {selectedCount === 0 && (
+                <div className="text-sm text-gray-500 text-right">
+                  (Chọn sản phẩm để tính tổng)
+                </div>
+              )}
             </div>
 
             <button
-              onClick={() => {
-                if (selectedItems.length === 0) {
-                  alert('Vui lòng chọn ít nhất một sản phẩm để thanh toán');
-                  return;
-                }
-                // In a real app, this would navigate to checkout
-                alert('Chuyển đến trang thanh toán');
-              }}
-              className="w-full bg-red-600 text-white py-4 rounded-md hover:bg-red-700 transition-colors font-bold text-lg"
+              onClick={handleCheckout}
+              disabled={selectedCount === 0}
+              className={`w-full py-4 rounded-md transition-colors font-bold text-lg ${
+                selectedCount === 0
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-red-600 text-white hover:bg-red-700'
+              }`}
             >
-              MUA HÀNG
+              MUA HÀNG ({selectedCount} sản phẩm)
             </button>
           </div>
         </div>
       )}
 
-      {/* Size/Color Selection Popup */}
+      {/* Size/Color Selection Popup Modal */}
       {showSizeColorPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <h3 className="text-xl font-bold mb-4">Chọn Kích thước & Màu sắc</h3>
+          <div className="bg-white rounded-lg max-w-2xl w-full p-6 shadow-xl max-h-[80vh] overflow-y-auto">
+            <h3 className="text-xl font-bold mb-4 text-gray-800">Chọn Kích thước & Màu sắc</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Sản phẩm: <span className="font-semibold">{cartItems.find(i => i.cartId === selectedSizeColor.cartId)?.productName || 'Unknown'}</span>
+            </p>
 
-            <div className="mb-4">
-              <label className="block text-gray-700 mb-2">Kích thước</label>
-              <select
-                value={selectedSizeColor.size}
-                onChange={(e) => setSelectedSizeColor({...selectedSizeColor, size: e.target.value})}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-600"
-              >
-                {sizes.map(size => (
-                  <option key={size} value={size}>{size}</option>
-                ))}
-              </select>
-            </div>
-
+            {/* Color Selector */}
             <div className="mb-6">
-              <label className="block text-gray-700 mb-2">Màu sắc</label>
-              <select
-                value={selectedSizeColor.color}
-                onChange={(e) => setSelectedSizeColor({...selectedSizeColor, color: e.target.value})}
-                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-600"
-              >
-                {colors.map(color => (
-                  <option key={color} value={color}>{color}</option>
-                ))}
-              </select>
+              <label className="block text-gray-700 mb-3 font-medium">Màu sắc:</label>
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                {[...new Set(productVariants.map(v => v.color).filter(Boolean))].map((color) => {
+                  const isSelected = selectedSizeColor.color === color;
+                  const hasStock = productVariants.some(v => v.color === color && v.stockQuantity > 0);
+                  return (
+                    <button
+                      key={color}
+                      onClick={() => hasStock && setSelectedSizeColor({...selectedSizeColor, color})}
+                      disabled={!hasStock}
+                      className={`border py-3 px-2 text-sm transition ${
+                        !hasStock
+                          ? 'border-gray-100 text-gray-300 cursor-not-allowed bg-gray-50'
+                          : isSelected
+                          ? 'border-red-600 bg-red-50 text-red-600 font-bold'
+                          : 'border-gray-200 hover:border-red-600'
+                      }`}
+                    >
+                      {color}
+                      {!hasStock && <span className="block text-[10px]">Hết</span>}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="flex justify-end space-x-3">
+            {/* Size Selector (only show if color is selected) */}
+            {selectedSizeColor.color && (
+              <div className="mb-6">
+                <label className="block text-gray-700 mb-3 font-medium">Kích thước:</label>
+                <div className="grid grid-cols-4 md:grid-cols-6 gap-2">
+                  {productVariants
+                    .filter(v => v.color === selectedSizeColor.color)
+                    .map((variant) => {
+                      const isSelected = selectedSizeColor.size === variant.size;
+                      const isOutOfStock = variant.stockQuantity === 0;
+                      return (
+                        <button
+                          key={variant.size}
+                          onClick={() => !isOutOfStock && setSelectedSizeColor({...selectedSizeColor, size: variant.size})}
+                          disabled={isOutOfStock}
+                          className={`border py-2 text-sm transition ${
+                            isOutOfStock
+                              ? 'border-gray-100 text-gray-300 cursor-not-allowed bg-gray-50'
+                              : isSelected
+                              ? 'border-red-600 bg-red-50 text-red-600 font-bold'
+                              : 'border-gray-200 hover:border-red-600'
+                          }`}
+                        >
+                          {variant.size}
+                          {isOutOfStock && <span className="block text-[10px]">Hết</span>}
+                        </button>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
+            {!selectedSizeColor.color && (
+              <p className="text-sm text-gray-500 italic mb-4">Vui lòng chọn màu trước khi chọn size</p>
+            )}
+
+            {/* Current selection info */}
+            {selectedSizeColor.size && selectedSizeColor.color && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded">
+                <p className="text-sm text-green-800">
+                  <i className="fas fa-check-circle mr-2"></i>
+                  Đã chọn: <strong>Size {selectedSizeColor.size}</strong> - <strong>{selectedSizeColor.color}</strong>
+                </p>
+              </div>
+            )}
+
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
               <button
                 onClick={() => setShowSizeColorPopup(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100"
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
               >
                 Hủy
               </button>
               <button
                 onClick={saveSizeColorChanges}
-                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+                disabled={!selectedSizeColor.size || !selectedSizeColor.color}
+                className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 Lưu
               </button>

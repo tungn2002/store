@@ -116,6 +116,13 @@ export const productAPI = {
     }, false); // Không cần auth
     return data;
   },
+
+  getProductVariants: async (productId, page = 0, size = 100) => {
+    const data = await apiCall(`/products/${productId}/variants?page=${page}&size=${size}`, {
+      method: 'GET',
+    }, false); // Không cần auth
+    return data;
+  },
 };
 
 // Brand API
@@ -168,10 +175,53 @@ export const searchAPI = {
 
 // Cart API
 export const cartAPI = {
+  getCart: async () => {
+    const data = await apiCall('/cart', {
+      method: 'GET',
+    }, true); // Cần auth
+    return data;
+  },
+
+  getCartProductVariants: async (cartId) => {
+    const data = await apiCall(`/cart/items/${cartId}/variants`, {
+      method: 'GET',
+    }, true); // Cần auth
+    return data;
+  },
+
   addToCart: async (productVariantId, quantity = 1) => {
     const data = await apiCall('/cart/items', {
       method: 'POST',
       body: JSON.stringify({ productVariantId, quantity }),
+    }, true); // Cần auth
+    return data;
+  },
+
+  updateCartItem: async (cartId, quantity) => {
+    const data = await apiCall(`/cart/items/${cartId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ quantity }),
+    }, true); // Cần auth
+    return data;
+  },
+
+  updateCartItemVariant: async (cartId, productVariantId) => {
+    const data = await apiCall(`/cart/items/${cartId}/variant?productVariantId=${productVariantId}`, {
+      method: 'PUT',
+    }, true); // Cần auth
+    return data;
+  },
+
+  deleteCartItem: async (cartId) => {
+    const data = await apiCall(`/cart/items/${cartId}`, {
+      method: 'DELETE',
+    }, true); // Cần auth
+    return data;
+  },
+
+  clearCart: async () => {
+    const data = await apiCall('/cart', {
+      method: 'DELETE',
     }, true); // Cần auth
     return data;
   },
@@ -195,7 +245,7 @@ export const authStorage = {
   clearUser: () => {
     localStorage.removeItem('user_info');
   },
-  
+
   isAuthenticated: () => {
     return !!getToken();
   },
@@ -208,5 +258,6 @@ export default {
   brandAPI,
   categoryAPI,
   searchAPI,
+  cartAPI,
   authStorage,
 };

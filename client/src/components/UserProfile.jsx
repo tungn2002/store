@@ -1,12 +1,22 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './UserProfile.css';
 import { profileAPI, authStorage } from '../services/api';
 
-const UserProfile = ({ onClose, onLogout, addToast }) => {
+const UserProfile = ({ onClose, onLogout, isLoggedIn, addToast }) => {
+  const navigate = useNavigate();
   const [activeMenu, setActiveMenu] = useState('personal-info');
+
+  useEffect(() => {
+    // Redirect to login if not authenticated
+    if (!isLoggedIn && !authStorage.isAuthenticated()) {
+      navigate('/?view=login');
+    }
+  }, [isLoggedIn, navigate]);
 
   const handleLogout = () => {
     onLogout();
+    navigate('/');
   };
 
   return (

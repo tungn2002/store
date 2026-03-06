@@ -87,6 +87,9 @@ const LoginForm = ({ toggleView, addToast }) => {
     try {
       const response = await authAPI.login(formData.email, formData.password);
       if (response.code === 1000 && response.result?.token) {
+        // Store token
+        authStorage.setToken(response.result.token);
+        
         // Fetch user profile after login
         try {
           const profileResponse = await fetch('http://localhost:8080/profile', {
@@ -104,7 +107,7 @@ const LoginForm = ({ toggleView, addToast }) => {
         }
 
         addToast('Đăng nhập thành công!', 'success');
-        toggleView('home');
+        toggleView(); // Call toggleView to update parent state
       } else {
         setErrors({ submit: response.message || 'Đăng nhập thất bại' });
         addToast(response.message || 'Đăng nhập thất bại', 'error');

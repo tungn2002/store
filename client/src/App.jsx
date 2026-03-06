@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import './App.css';
 import Cart from './components/Cart';
@@ -14,6 +14,7 @@ import Favorites from './components/Favorites';
 import Login from './components/Login';
 import Footer from './components/Footer';
 import Toast from './components/Toast';
+import { authStorage } from './services/api';
 
 const products = [
   { id: 1, name: "Nike Air Max 90 Red Edition", price: 1250000, oldPrice: 1500000, img: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=600&q=80", gallery: ["https://images.unsplash.com/photo-1542291026-7eec264c27ff", "https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa", "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a"] },
@@ -24,11 +25,19 @@ const products = [
 ];
 
 function AppContent() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => authStorage.isAuthenticated());
   const [toasts, setToasts] = useState([]);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const location = useLocation();
+
+  // Sync isLoggedIn state with authStorage
+  useEffect(() => {
+    const checkAuth = () => {
+      setIsLoggedIn(authStorage.isAuthenticated());
+    };
+    checkAuth();
+  }, []);
 
   // Get productId from path /product/:id
   const isProductDetail = location.pathname.startsWith('/product/');
@@ -55,6 +64,8 @@ function AppContent() {
   };
 
   const handleLogout = () => {
+    authStorage.clearUser();
+    authStorage.removeToken();
     setIsLoggedIn(false);
     navigate('/');
   };
@@ -65,17 +76,17 @@ function AppContent() {
 
   const handleProfileClick = () => {
     if (!isLoggedIn) {
-      navigate('/login');
+      navigate('/?view=login');
     } else {
-      navigate('/profile');
+      navigate('/?view=profile');
     }
   };
 
   const handleCartClick = () => {
     if (!isLoggedIn) {
-      navigate('/login');
+      navigate('/?view=login');
     } else {
-      navigate('/cart');
+      navigate('/?view=cart');
     }
   };
 
@@ -94,11 +105,11 @@ function AppContent() {
       case 'detail':
         return <ProductDetail productId={productId} toggleView={() => navigate(-1)} addToast={addToast} />;
       case 'profile':
-        return <UserProfile onClose={() => navigate('/')} onLogout={handleLogout} addToast={addToast} />;
+        return <UserProfile onClose={() => navigate('/')} onLogout={handleLogout} isLoggedIn={isLoggedIn} addToast={addToast} />;
       case 'favorites':
         return <Favorites toggleView={(view) => navigate(`/${view}`)} />;
       case 'cart':
-        return <Cart toggleView={(view) => navigate(`/${view}`)} />;
+        return <Cart isLoggedIn={isLoggedIn} addToast={addToast} />;
       case 'login':
         return <Login toggleView={handleLogin} addToast={addToast} />;
       default:

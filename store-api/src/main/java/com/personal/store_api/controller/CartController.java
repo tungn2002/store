@@ -1,8 +1,11 @@
 package com.personal.store_api.controller;
 
 import com.personal.store_api.dto.ApiResponse;
+import com.personal.store_api.dto.request.CartItemUpdateRequest;
 import com.personal.store_api.dto.request.CartRequest;
 import com.personal.store_api.dto.response.CartItemResponse;
+import com.personal.store_api.dto.response.CartResponse;
+import com.personal.store_api.dto.response.ProductVariantResponse;
 import com.personal.store_api.service.CartService;
 import jakarta.validation.Valid;
 import lombok.AccessLevel;
@@ -10,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/cart")
@@ -19,6 +24,29 @@ public class CartController {
 
     CartService cartService;
 
+    @GetMapping
+    public ResponseEntity<ApiResponse<CartResponse>> getCart() {
+        CartResponse response = cartService.getCart();
+
+        ApiResponse<CartResponse> apiResponse = ApiResponse.<CartResponse>builder()
+                .result(response)
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @GetMapping("/items/{cartId}/variants")
+    public ResponseEntity<ApiResponse<List<ProductVariantResponse>>> getCartProductVariants(
+            @PathVariable Integer cartId) {
+        List<ProductVariantResponse> response = cartService.getCartProductVariants(cartId);
+
+        ApiResponse<List<ProductVariantResponse>> apiResponse = ApiResponse.<List<ProductVariantResponse>>builder()
+                .result(response)
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
     @PostMapping("/items")
     public ResponseEntity<ApiResponse<CartItemResponse>> addToCart(
             @RequestBody @Valid CartRequest request) {
@@ -26,6 +54,55 @@ public class CartController {
 
         ApiResponse<CartItemResponse> apiResponse = ApiResponse.<CartItemResponse>builder()
                 .result(response)
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @PutMapping("/items/{cartId}")
+    public ResponseEntity<ApiResponse<CartItemResponse>> updateCartItem(
+            @PathVariable Integer cartId,
+            @RequestBody @Valid CartItemUpdateRequest request) {
+        CartItemResponse response = cartService.updateCartItem(cartId, request);
+
+        ApiResponse<CartItemResponse> apiResponse = ApiResponse.<CartItemResponse>builder()
+                .result(response)
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @PutMapping("/items/{cartId}/variant")
+    public ResponseEntity<ApiResponse<CartItemResponse>> updateCartItemVariant(
+            @PathVariable Integer cartId,
+            @RequestParam Integer productVariantId) {
+        CartItemResponse response = cartService.updateCartItemVariant(cartId, productVariantId);
+
+        ApiResponse<CartItemResponse> apiResponse = ApiResponse.<CartItemResponse>builder()
+                .result(response)
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @DeleteMapping("/items/{cartId}")
+    public ResponseEntity<ApiResponse<Void>> deleteCartItem(
+            @PathVariable Integer cartId) {
+        cartService.deleteCartItem(cartId);
+
+        ApiResponse<Void> apiResponse = ApiResponse.<Void>builder()
+                .message("Cart item deleted successfully")
+                .build();
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @DeleteMapping
+    public ResponseEntity<ApiResponse<Void>> clearCart() {
+        cartService.clearCart();
+
+        ApiResponse<Void> apiResponse = ApiResponse.<Void>builder()
+                .message("Cart cleared successfully")
                 .build();
 
         return ResponseEntity.ok(apiResponse);

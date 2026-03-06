@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
-@Table(name = "carts", 
+@Table(name = "carts",
        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "product_variants_id"}))
 public class Cart {
     @Id

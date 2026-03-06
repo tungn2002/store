@@ -20,4 +20,9 @@ public interface CartRepository extends JpaRepository<Cart, Integer> {
     @Query("SELECT COUNT(c) FROM Cart c WHERE c.user = :user")
     int countByUser(@Param("user") User user);
 
+    @EntityGraph(attributePaths = {"productVariant", "productVariant.product"})
+    @Query("SELECT c FROM Cart c WHERE c.user = :user ORDER BY c.createdAt DESC")
+    List<Cart> findAllByUser(@Param("user") User user);
+
+    void deleteByUserIdAndId(@Param("userId") String userId, @Param("id") Integer id);
 }
