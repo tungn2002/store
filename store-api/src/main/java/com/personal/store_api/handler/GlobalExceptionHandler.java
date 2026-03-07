@@ -70,6 +70,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = AppException.class)
     ResponseEntity<ApiResponse> handlingAppException(AppException e) {
         ErrorCode errorCode = e.getErrorCode();
+        
+        // Handle AppException without ErrorCode (custom message only)
+        if (errorCode == null) {
+            log.error("AppException: ", e);
+            ApiResponse apiResponse = new ApiResponse();
+            apiResponse.setCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
+            apiResponse.setMessage(e.getMessage());
+            return ResponseEntity.badRequest().body(apiResponse);
+        }
 
         ApiResponse apiResponse = new ApiResponse();
         apiResponse.setCode(errorCode.getCode());

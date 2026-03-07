@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { cartAPI, productAPI, authStorage } from '../services/api';
+import { cartAPI, productAPI, authStorage, checkoutAPI } from '../services/api';
 import './Cart.css';
 
 const Cart = ({ isLoggedIn, addToast }) => {
@@ -17,6 +17,24 @@ const Cart = ({ isLoggedIn, addToast }) => {
     total: 0
   });
   const [updateTrigger, setUpdateTrigger] = useState(0); // Force re-render trigger
+
+  // Handle Stripe redirect (success/cancel) - just show toast, webhook handles status update
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderId = urlParams.get('order_id');
+    const sessionId = urlParams.get('session_id');
+    const paymentStatus = urlParams.get('payment');
+
+    if (orderId) {
+      if (sessionId && paymentStatus === 'success') {
+        addToast('Thanh toán thành công!', 'success');
+      } else if (paymentStatus === 'cancel') {
+        addToast('Đơn hàng đã hủy. Kho sẽ được cập nhật.', 'info');
+      }
+      // Clear URL params
+      window.history.replaceState({}, document.title, '/?view=cart');
+    }
+  }, []);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -259,12 +277,58 @@ const Cart = ({ isLoggedIn, addToast }) => {
   };
 
   // Handle checkout
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (selectedCount === 0) {
       addToast('Vui lòng chọn ít nhất một sản phẩm để thanh toán', 'error');
       return;
     }
-    addToast(`Thanh toán ${selectedCount} sản phẩm với tổng tiền: ${formatCurrency(finalTotal)}`, 'success');
+
+    try {
+      // Prepare checkout request with items wrapper
+      const checkoutData = {
+        items: cartItems
+          .filter(item => selectedItems[item.cartId])
+          .map(item => ({
+            productVariantId: item.productVariantId,
+            quantity: item.quantity
+          }))
+      };
+
+      // Call checkout API with success/cancel URLs
+      const baseUrl = window.location.origin;
+      const successUrl = `${baseUrl}/?view=cart&payment=success`;
+      const cancelUrl = `${baseUrl}/?view=cart&payment=cancel`;
+
+      const response = await fetch(`http://localhost:8080/checkout?successUrl=${encodeURIComponent(successUrl)}&cancelUrl=${encodeURIComponent(cancelUrl)}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authStorage.getToken()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(checkoutData)
+      });
+
+      // Handle 401 Unauthorized - token expired
+      if (response.status === 401) {
+        authStorage.removeToken();
+        addToast('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại.', 'error');
+        window.location.href = '/?view=login';
+        return;
+      }
+
+      const result = await response.json();
+
+      if (result.result && result.result.checkoutUrl) {
+        addToast('Đang chuyển hướng đến trang thanh toán...', 'info');
+        // Redirect to Stripe Checkout
+        window.location.href = result.result.checkoutUrl;
+      } else {
+        addToast(result.message || 'Không thể tạo phiên thanh toán!', 'error');
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      addToast(err.message || 'Lỗi khi tạo phiên thanh toán!', 'error');
+    }
   };
 
   if (loading) {

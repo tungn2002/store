@@ -98,6 +98,14 @@ const LoginForm = ({ toggleView, addToast }) => {
               'Content-Type': 'application/json',
             },
           });
+          
+          // Handle 401 Unauthorized
+          if (profileResponse.status === 401) {
+            authStorage.removeToken();
+            window.location.href = '/?view=login';
+            return;
+          }
+          
           const profileData = await profileResponse.json();
           if (profileData.result) {
             authStorage.setUser(profileData.result);

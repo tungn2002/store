@@ -29,6 +29,9 @@ public enum ErrorCode {
     CART_QUANTITY_MAX_EXCEEDED(1022, "error.cart.quantity.max.exceeded", HttpStatus.BAD_REQUEST),
     CART_QUANTITY_MIN(1023, "error.cart.quantity.min", HttpStatus.BAD_REQUEST),
     CART_ITEM_ALREADY_EXISTS(1024, "error.cart.item.already.exists", HttpStatus.BAD_REQUEST),
+    ORDER_NOT_FOUND(1025, "error.order.not.found", HttpStatus.NOT_FOUND),
+    ORDER_OUT_OF_STOCK(1026, "error.order.out.of.stock", HttpStatus.BAD_REQUEST),
+    PAYMENT_ERROR(1027, "error.payment.error", HttpStatus.BAD_REQUEST),
     ;
 
     private final int code;

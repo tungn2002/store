@@ -10,9 +10,10 @@ const setToken = (token) => {
   localStorage.setItem('access_token', token);
 };
 
-// Helper to remove auth token
+// Helper to remove auth token and clear user data
 const removeToken = () => {
   localStorage.removeItem('access_token');
+  localStorage.removeItem('user_info');
 };
 
 // Generic API call helper
@@ -33,6 +34,13 @@ const apiCall = async (endpoint, options = {}, requireAuth = true) => {
   const data = await response.json();
 
   if (!response.ok) {
+    // Handle 401 Unauthorized - token expired or invalid
+    if (response.status === 401) {
+      removeToken();
+      // Redirect to login page
+      window.location.href = '/?view=login';
+      throw new Error('Session expired. Please login again.');
+    }
     throw new Error(data.message || 'API call failed');
   }
 
@@ -227,23 +235,35 @@ export const cartAPI = {
   },
 };
 
+// Checkout API
+export const checkoutAPI = {
+  createCheckoutSession: async (items, successUrl, cancelUrl) => {
+    const data = await apiCall(`/checkout?successUrl=${encodeURIComponent(successUrl)}&cancelUrl=${encodeURIComponent(cancelUrl)}`, {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    }, true); // Cần auth
+    return data;
+  },
+};
+
 // Storage helpers for user info
 export const authStorage = {
   setToken,
   getToken,
   removeToken,
-  
+
   setUser: (user) => {
     localStorage.setItem('user_info', JSON.stringify(user));
   },
-  
+
   getUser: () => {
     const user = localStorage.getItem('user_info');
     return user ? JSON.parse(user) : null;
   },
-  
+
   clearUser: () => {
     localStorage.removeItem('user_info');
+    removeToken();
   },
 
   isAuthenticated: () => {
@@ -259,5 +279,6 @@ export default {
   categoryAPI,
   searchAPI,
   cartAPI,
+  checkoutAPI,
   authStorage,
 };

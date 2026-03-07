@@ -28,7 +28,8 @@ public class SecurityConfig {
     private final String[] PUBLIC_POST_ENDPOINTS = {
             "/auth/login",
             "/auth/register",
-            "/auth/logout"
+            "/auth/logout",
+            "/webhook/stripe"
     };
 
     private final String[] PUBLIC_GET_ENDPOINTS = {
