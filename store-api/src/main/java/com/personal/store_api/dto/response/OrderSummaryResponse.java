@@ -5,14 +5,13 @@ import lombok.experimental.FieldDefaults;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class OrderResponse {
+public class OrderSummaryResponse {
     Integer id;
     String status;
     BigDecimal totalAmount;
@@ -22,5 +21,4 @@ public class OrderResponse {
     String customerEmail;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
-    List<OrderItemResponse> items;
 }

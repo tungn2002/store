@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './UserProfile.css';
-import { profileAPI, authStorage } from '../services/api';
+import { profileAPI, authStorage, ordersAPI } from '../services/api';
 
 const UserProfile = ({ onClose, onLogout, isLoggedIn, addToast }) => {
   const navigate = useNavigate();
@@ -346,72 +346,66 @@ const PasswordChangeForm = ({ addToast }) => {
 
 // Orders Table Component
 const OrdersTable = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showOrderDetailPopup, setShowOrderDetailPopup] = useState(null);
+  const [loadingOrderDetail, setLoadingOrderDetail] = useState(false);
+  const [pagination, setPagination] = useState({
+    page: 0,
+    size: 10,
+    totalItems: 0,
+    totalPages: 0,
+    hasNext: false,
+    hasPrevious: false
+  });
 
-  const orders = [
-    {
-      id: 1,
-      date: '2023-01-15',
-      total: 1500000,
-      status: 'Hoàn thành',
-      note: 'Giao hàng giờ hành chính',
-      products: [
-        { name: 'Nike Air Max 90 Red Edition', size: '42', color: 'Red', quantity: 1, price: 1250000 },
-        { name: 'Adidas Forum Low Classic White', size: '40', color: 'White', quantity: 1, price: 250000 }
-      ]
-    },
-    {
-      id: 2,
-      date: '2023-02-20',
-      total: 2300000,
-      status: 'Đang chờ',
-      note: 'Khách yêu cầu gọi trước khi giao',
-      products: [
-        { name: 'Nike Dunk Low Retro Panda', size: '43', color: 'Black/White', quantity: 1, price: 2300000 }
-      ]
-    },
-    {
-      id: 3,
-      date: '2023-03-10',
-      total: 850000,
-      status: 'Hoàn thành',
-      note: '',
-      products: [
-        { name: 'Vans Old Skool Classic Black', size: '39', color: 'Black', quantity: 1, price: 850000 }
-      ]
-    },
-    {
-      id: 4,
-      date: '2023-04-05',
-      total: 3200000,
-      status: 'Đang chờ',
-      note: 'Giao tại văn phòng làm việc',
-      products: [
-        { name: 'Nike Air Max 90 Red Edition', size: '42', color: 'Red', quantity: 2, price: 1250000 },
-        { name: 'Adidas Forum Low Classic White', size: '41', color: 'White', quantity: 1, price: 700000 }
-      ]
-    },
-    {
-      id: 5,
-      date: '2023-05-12',
-      total: 1750000,
-      status: 'Hoàn thành',
-      note: '',
-      products: [
-        { name: 'Nike Dunk Low Retro Panda', size: '40', color: 'Black/White', quantity: 1, price: 1750000 }
-      ]
+  const fetchOrders = async (page = 0, size = 10) => {
+    try {
+      setLoading(true);
+      const response = await ordersAPI.getMyOrders(page, size);
+      if (response.code === 1000 && response.result) {
+        const result = response.result;
+        setOrders(result.items || []);
+        setPagination({
+          page: result.page,
+          size: result.size,
+          totalItems: result.totalItems,
+          totalPages: result.totalPages,
+          hasNext: result.hasNext,
+          hasPrevious: result.hasPrevious
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    } finally {
+      setLoading(false);
     }
-  ];
-
-  const openOrderDetailPopup = (order) => {
-    setShowOrderDetailPopup(order);
   };
 
-  const handleCancelOrder = (orderId) => {
-    if (window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này?')) {
-      // Handle cancel order logic here
-      console.log('Cancel order:', orderId);
-      alert('Đã hủy đơn hàng thành công');
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
+  const openOrderDetailPopup = async (order) => {
+    // Show loading state
+    setShowOrderDetailPopup({ ...order, items: null, loading: true });
+    
+    try {
+      setLoadingOrderDetail(true);
+      const response = await ordersAPI.getOrderById(order.id);
+      if (response.code === 1000 && response.result) {
+        setShowOrderDetailPopup({ ...response.result, loading: false });
+      }
+    } catch (error) {
+      console.error('Failed to fetch order details:', error);
+    } finally {
+      setLoadingOrderDetail(false);
+    }
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 0 && newPage < pagination.totalPages) {
+      fetchOrders(newPage, pagination.size);
     }
   };
 
@@ -422,51 +416,99 @@ const OrdersTable = () => {
     }).format(amount);
   };
 
+  const getStatusClass = (status) => {
+    switch (status) {
+      case 'PAID':
+        return 'status-paid';
+      case 'PENDING':
+        return 'status-pending';
+      case 'CANCEL':
+        return 'status-cancel';
+      default:
+        return '';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'PAID':
+        return 'Hoàn thành';
+      case 'PENDING':
+        return 'Đang chờ';
+      case 'CANCEL':
+        return 'Đã hủy';
+      default:
+        return status;
+    }
+  };
+
+  if (loading) {
+    return <div className="loading-container">Đang tải đơn hàng...</div>;
+  }
+
   return (
     <div className="orders-container">
       <h3>Danh Sách Đơn Hàng</h3>
-      <table className="orders-table">
-        <thead>
-          <tr>
-            <th>Mã đơn hàng</th>
-            <th>Ngày đặt</th>
-            <th>Sản phẩm</th>
-            <th>Tổng tiền</th>
-            <th>Trạng thái</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map(order => (
-            <tr key={order.id}>
-              <td>{order.id}</td>
-              <td>{order.date}</td>
-              <td>
-                <button
-                  onClick={() => openOrderDetailPopup(order)}
-                  className="btn-detail"
-                >
-                  Chi tiết
-                </button>
-              </td>
-              <td>{order.total.toLocaleString('vi-VN')} ₫</td>
-              <td className={`status ${order.status.toLowerCase().replace(/\s+/g, '-')}`}>
-                {order.status}
-              </td>
-              <td>
-                {order.status === 'Đang chờ' && (
-                  <button
-                    onClick={() => handleCancelOrder(order.id)}
-                    className="btn-cancel-order"
-                  >
-                    Hủy
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      {orders.length === 0 ? (
+        <div className="empty-orders">
+          <p>Chưa có đơn hàng nào</p>
+        </div>
+      ) : (
+        <>
+          <table className="orders-table">
+            <thead>
+              <tr>
+                <th>Mã đơn hàng</th>
+                <th>Ngày đặt</th>
+                <th>Tổng tiền</th>
+                <th>Trạng thái</th>
+                <th>Hành động</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map(order => (
+                <tr key={order.id}>
+                  <td>#{order.id}</td>
+                  <td>{new Date(order.createdAt).toLocaleDateString('vi-VN')}</td>
+                  <td>{formatCurrency(order.totalAmount)}</td>
+                  <td className={`status ${getStatusClass(order.status)}`}>
+                    {getStatusText(order.status)}
+                  </td>
+                  <td>
+                    <button
+                      onClick={() => openOrderDetailPopup(order)}
+                      className="btn-detail"
+                    >
+                      Chi tiết
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Pagination */}
+          <div className="pagination">
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={!pagination.hasPrevious}
+              className="btn-page"
+            >
+              ← Trước
+            </button>
+            <span className="page-info">
+              Trang {pagination.page + 1} / {pagination.totalPages}
+            </span>
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={!pagination.hasNext}
+              className="btn-page"
+            >
+              Sau →
+            </button>
+          </div>
+        </>
+      )}
 
       {/* Order Detail Popup */}
       {showOrderDetailPopup && (
@@ -477,36 +519,37 @@ const OrdersTable = () => {
               <button className="popup-close" onClick={() => setShowOrderDetailPopup(null)}>×</button>
             </div>
             <div className="popup-body">
-              <table className="order-detail-table">
-                <thead>
-                  <tr>
-                    <th>Tên sản phẩm</th>
-                    <th>Size</th>
-                    <th>Color</th>
-                    <th>Số lượng</th>
-                    <th>Đơn giá</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {showOrderDetailPopup.products.map((product, index) => (
-                    <tr key={index}>
-                      <td>{product.name}</td>
-                      <td>{product.size}</td>
-                      <td>{product.color}</td>
-                      <td>{product.quantity}</td>
-                      <td>{formatCurrency(product.price)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {showOrderDetailPopup.note && (
-                <div className="order-note">
-                  <strong>Ghi chú:</strong> {showOrderDetailPopup.note}
-                </div>
+              {showOrderDetailPopup.loading ? (
+                <div className="loading-container">Đang tải chi tiết đơn hàng...</div>
+              ) : (
+                <>
+                  <table className="order-detail-table">
+                    <thead>
+                      <tr>
+                        <th>Tên sản phẩm</th>
+                        <th>Size</th>
+                        <th>Color</th>
+                        <th>Số lượng</th>
+                        <th>Đơn giá</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(showOrderDetailPopup.items || []).map((item, index) => (
+                        <tr key={index}>
+                          <td>{item.productName}</td>
+                          <td>{item.size || '-'}</td>
+                          <td>{item.color || '-'}</td>
+                          <td>{item.quantity}</td>
+                          <td>{formatCurrency(item.sellingPrice)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="order-total">
+                    <strong>Tổng cộng:</strong> {formatCurrency(showOrderDetailPopup.totalAmount)}
+                  </div>
+                </>
               )}
-              <div className="order-total">
-                <strong>Tổng cộng:</strong> {formatCurrency(showOrderDetailPopup.total)}
-              </div>
             </div>
           </div>
         </div>

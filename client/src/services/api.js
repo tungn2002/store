@@ -246,6 +246,23 @@ export const checkoutAPI = {
   },
 };
 
+// Orders API
+export const ordersAPI = {
+  getMyOrders: async (page = 0, size = 10) => {
+    const data = await apiCall(`/orders/my-orders?page=${page}&size=${size}`, {
+      method: 'GET',
+    }, true); // Cần auth
+    return data;
+  },
+
+  getOrderById: async (orderId) => {
+    const data = await apiCall(`/orders/${orderId}`, {
+      method: 'GET',
+    }, true); // Cần auth
+    return data;
+  },
+};
+
 // Storage helpers for user info
 export const authStorage = {
   setToken,
@@ -280,5 +297,6 @@ export default {
   searchAPI,
   cartAPI,
   checkoutAPI,
+  ordersAPI,
   authStorage,
 };

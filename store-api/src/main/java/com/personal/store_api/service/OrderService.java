@@ -2,11 +2,15 @@ package com.personal.store_api.service;
 
 import com.personal.store_api.dto.request.CheckoutRequest;
 import com.personal.store_api.dto.response.CheckoutResponse;
+import com.personal.store_api.dto.response.OrderResponse;
+import com.personal.store_api.dto.response.OrderSummaryResponse;
+import com.personal.store_api.dto.response.PaginatedResponse;
 import com.personal.store_api.entity.Order;
 import com.personal.store_api.entity.OrderItem;
 import com.personal.store_api.entity.ProductVariant;
 import com.personal.store_api.entity.User;
 import com.personal.store_api.exception.AppException;
+import com.personal.store_api.mapper.OrderMapper;
 import com.personal.store_api.repository.OrderItemRepository;
 import com.personal.store_api.repository.OrderRepository;
 import com.personal.store_api.repository.ProductVariantRepository;
@@ -14,6 +18,10 @@ import com.personal.store_api.repository.UserRepository;
 import com.stripe.exception.StripeException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +41,7 @@ public class OrderService {
     private final ProductVariantRepository productVariantRepository;
     private final StripeService stripeService;
     private final UserRepository userRepository;
+    private final OrderMapper orderMapper;
 
     @Transactional
     public CheckoutResponse createCheckoutSession(CheckoutRequest request, String successUrl, String cancelUrl) {
@@ -166,5 +175,74 @@ public class OrderService {
     private String extractProductName(String fullProductName) {
         int sizeIndex = fullProductName.indexOf(" - Size:");
         return sizeIndex > 0 ? fullProductName.substring(0, sizeIndex) : fullProductName;
+    }
+
+    /**
+     * Get orders for the current authenticated user with pagination (summary only, no items)
+     */
+    public PaginatedResponse<OrderSummaryResponse> getUserOrders(int page, int size) {
+        // Get current authenticated user ID
+        String userId = null;
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof org.springframework.security.oauth2.jwt.Jwt jwt) {
+            userId = jwt.getSubject();
+        }
+
+        if (userId == null) {
+            throw new AppException("User not authenticated");
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Order> orderPage = orderRepository.findByUserId(userId, pageable);
+
+        List<OrderSummaryResponse> orderResponses = orderPage.getContent().stream()
+                .map(orderMapper::toOrderSummaryResponse)
+                .toList();
+
+        return PaginatedResponse.<OrderSummaryResponse>builder()
+                .items(orderResponses)
+                .page(orderPage.getNumber())
+                .size(orderPage.getSize())
+                .totalItems(orderPage.getTotalElements())
+                .totalPages(orderPage.getTotalPages())
+                .isFirst(orderPage.isFirst())
+                .isLast(orderPage.isLast())
+                .hasNext(orderPage.hasNext())
+                .hasPrevious(orderPage.hasPrevious())
+                .build();
+    }
+
+    private OrderResponse toOrderResponseWithItems(Order order) {
+        OrderResponse response = orderMapper.toOrderResponse(order);
+        response.setItems(orderMapper.toOrderItemResponseList(order.getItems()));
+        return response;
+    }
+
+    public OrderResponse toOrderResponseWithItemsPublic(Order order) {
+        return toOrderResponseWithItems(order);
+    }
+
+    /**
+     * Get all orders for admin with pagination (summary only, no items)
+     */
+    public PaginatedResponse<OrderSummaryResponse> getAllOrders(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<Order> orderPage = orderRepository.findAll(pageable);
+
+        List<OrderSummaryResponse> orderResponses = orderPage.getContent().stream()
+                .map(orderMapper::toOrderSummaryResponse)
+                .toList();
+
+        return PaginatedResponse.<OrderSummaryResponse>builder()
+                .items(orderResponses)
+                .page(orderPage.getNumber())
+                .size(orderPage.getSize())
+                .totalItems(orderPage.getTotalElements())
+                .totalPages(orderPage.getTotalPages())
+                .isFirst(orderPage.isFirst())
+                .isLast(orderPage.isLast())
+                .hasNext(orderPage.hasNext())
+                .hasPrevious(orderPage.hasPrevious())
+                .build();
     }
 }
