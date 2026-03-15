@@ -9,6 +9,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,6 +28,7 @@ public class OrderController {
      * Get orders for the current authenticated user with pagination (summary only, no items)
      */
     @GetMapping("/my-orders")
+    @PreAuthorize("hasAuthority('orders.my_orders')")
     public ResponseEntity<ApiResponse<PaginatedResponse<OrderSummaryResponse>>> getMyOrders(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -43,6 +45,7 @@ public class OrderController {
      * Get all orders for admin with pagination (summary only, no items)
      */
     @GetMapping("/admin/all")
+    @PreAuthorize("hasAuthority('orders.admin_all')")
     public ResponseEntity<ApiResponse<PaginatedResponse<OrderSummaryResponse>>> getAllOrders(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -59,6 +62,7 @@ public class OrderController {
      * Get order details by ID (includes items)
      */
     @GetMapping("/{orderId}")
+    @PreAuthorize("hasAuthority('orders.read')")
     public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(@PathVariable Integer orderId) {
         OrderResponse order = orderService.toOrderResponseWithItemsPublic(orderService.getOrder(orderId));
 

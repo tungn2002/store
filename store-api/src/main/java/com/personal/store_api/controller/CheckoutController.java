@@ -9,6 +9,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -20,6 +21,7 @@ public class CheckoutController {
     OrderService orderService;
 
     @PostMapping
+    @PreAuthorize("hasAuthority('checkout.create')")
     public ResponseEntity<ApiResponse<CheckoutResponse>> createCheckoutSession(
             @RequestBody @Valid CheckoutRequest request,
             @RequestParam(defaultValue = "http://localhost:5173/order/success") String successUrl,

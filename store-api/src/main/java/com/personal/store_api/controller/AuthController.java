@@ -38,19 +38,21 @@ public class AuthController {
     }
 
     @GetMapping("/token")
+    @PreAuthorize("hasAuthority('auth.token')")
     public String testToken() {
         return "abc";
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('auth.token2')")
     @GetMapping("/token2")
     public String testToken2() {
         return "abc";
     }
 
     @PostMapping("/logout")
-    ApiResponse<Void> logout(@RequestBody LogoutRequest request) throws ParseException, JOSEException {
+    public ResponseEntity<ApiResponse<Void>> logout(@RequestBody LogoutRequest request) throws ParseException, JOSEException {
         authService.logout(request);
-        return ApiResponse.<Void>builder().build();
+        ApiResponse<Void> response = ApiResponse.<Void>builder().build();
+        return ResponseEntity.ok(response);
     }
 }

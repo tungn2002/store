@@ -10,6 +10,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -32,6 +33,7 @@ public class CategoryController {
     CategoryService categoryService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('categories.read')")
     public ResponseEntity<ApiResponse<PaginatedResponse<CategoryResponse>>> getCategories(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -57,6 +59,7 @@ public class CategoryController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('categories.create')")
     public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(
             @ModelAttribute @Valid CategoryRequest request) throws IOException {
         CategoryResponse response = categoryService.createCategory(request);
@@ -69,6 +72,7 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('categories.update')")
     public ResponseEntity<ApiResponse<CategoryResponse>> updateCategory(
             @PathVariable Integer id,
             @ModelAttribute @Valid CategoryRequest request) throws IOException {
@@ -82,6 +86,7 @@ public class CategoryController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('categories.delete')")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Integer id) throws IOException {
         categoryService.deleteCategory(id);
 

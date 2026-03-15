@@ -12,6 +12,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -27,6 +28,7 @@ public class ProductController {
     ProductService productService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('products.read')")
     public ResponseEntity<ApiResponse<PaginatedResponse<ProductResponse>>> getProducts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -55,6 +57,7 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('products.read_one')")
     public ResponseEntity<ApiResponse<ProductResponse>> getProduct(@PathVariable Integer id) {
         ProductResponse response = productService.getProduct(id);
 
@@ -77,6 +80,7 @@ public class ProductController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('products.create')")
     public ResponseEntity<ApiResponse<ProductResponse>> createProduct(
             @ModelAttribute @Valid ProductRequest request) throws IOException {
         ProductResponse response = productService.createProduct(request);
@@ -89,6 +93,7 @@ public class ProductController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('products.update')")
     public ResponseEntity<ApiResponse<ProductResponse>> updateProduct(
             @PathVariable Integer id,
             @ModelAttribute @Valid ProductRequest request) throws IOException {
@@ -102,6 +107,7 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('products.delete')")
     public ResponseEntity<ApiResponse<Void>> deleteProduct(@PathVariable Integer id) throws IOException {
         productService.deleteProduct(id);
 

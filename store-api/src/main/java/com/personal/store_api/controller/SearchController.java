@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -77,13 +78,14 @@ public class SearchController {
     }
 
     @PostMapping("/reindex")
+    @PreAuthorize("hasAuthority('search.reindex')")
     public ResponseEntity<ApiResponse<String>> reindexAllProducts() {
         try {
             List<Product> products = productRepository.findAll();
             for (Product product : products) {
                 elasticsearchService.indexProduct(product);
             }
-            
+
             ApiResponse<String> apiResponse = ApiResponse.<String>builder()
                     .result("Reindexed " + products.size() + " products")
                     .build();

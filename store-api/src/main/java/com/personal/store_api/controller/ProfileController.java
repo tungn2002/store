@@ -10,6 +10,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,20 +28,22 @@ public class ProfileController {
     ProfileService profileService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('profile.read')")
     public ResponseEntity<ApiResponse<ProfileResponse>> getProfile() {
         Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         String userId = jwt.getSubject();
-        
+
         ProfileResponse profileResponse = profileService.getProfile(userId);
-        
+
         ApiResponse<ProfileResponse> response = ApiResponse.<ProfileResponse>builder()
                 .result(profileResponse)
                 .build();
-        
+
         return ResponseEntity.ok(response);
     }
 
     @PutMapping
+    @PreAuthorize("hasAuthority('profile.update')")
     public ResponseEntity<ApiResponse<ProfileResponse>> updateProfile(
             @RequestBody @Valid UpdateProfileRequest request) {
         Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -56,6 +59,7 @@ public class ProfileController {
     }
 
     @PutMapping("/change-password")
+    @PreAuthorize("hasAuthority('profile.change_password')")
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @RequestBody @Valid ChangePasswordRequest request) {
         Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();

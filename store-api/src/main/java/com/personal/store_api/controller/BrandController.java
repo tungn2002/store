@@ -10,6 +10,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,6 +32,7 @@ public class BrandController {
     BrandService brandService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('brands.read')")
     public ResponseEntity<ApiResponse<PaginatedResponse<BrandResponse>>> getBrands(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -56,6 +58,7 @@ public class BrandController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('brands.create')")
     public ResponseEntity<ApiResponse<BrandResponse>> createBrand(
             @RequestBody @Valid BrandRequest request) {
         BrandResponse response = brandService.createBrand(request);
@@ -68,6 +71,7 @@ public class BrandController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('brands.update')")
     public ResponseEntity<ApiResponse<BrandResponse>> updateBrand(
             @PathVariable Integer id,
             @RequestBody @Valid BrandRequest request) {
@@ -81,6 +85,7 @@ public class BrandController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('brands.delete')")
     public ResponseEntity<ApiResponse<Void>> deleteBrand(@PathVariable Integer id) {
         brandService.deleteBrand(id);
 

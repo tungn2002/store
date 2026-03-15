@@ -9,6 +9,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,6 +25,7 @@ public class StoreSettingsController {
     StoreSettingsService storeSettingsService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('store_settings.read')")
     public ResponseEntity<ApiResponse<StoreSettingsResponse>> getStoreSettings() {
         StoreSettingsResponse response = storeSettingsService.getStoreSettings();
 
@@ -35,6 +37,7 @@ public class StoreSettingsController {
     }
 
     @PutMapping
+    @PreAuthorize("hasAuthority('store_settings.update')")
     public ResponseEntity<ApiResponse<StoreSettingsResponse>> updateStoreSettings(
             @RequestBody @Valid StoreSettingsRequest request) {
         StoreSettingsResponse response = storeSettingsService.updateStoreSettings(request);

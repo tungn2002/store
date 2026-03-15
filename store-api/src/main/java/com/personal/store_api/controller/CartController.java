@@ -12,6 +12,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,6 +26,7 @@ public class CartController {
     CartService cartService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('cart.read')")
     public ResponseEntity<ApiResponse<CartResponse>> getCart() {
         CartResponse response = cartService.getCart();
 
@@ -36,6 +38,7 @@ public class CartController {
     }
 
     @GetMapping("/items/{cartId}/variants")
+    @PreAuthorize("hasAuthority('cart.read_variants')")
     public ResponseEntity<ApiResponse<List<ProductVariantResponse>>> getCartProductVariants(
             @PathVariable Integer cartId) {
         List<ProductVariantResponse> response = cartService.getCartProductVariants(cartId);
@@ -48,6 +51,7 @@ public class CartController {
     }
 
     @PostMapping("/items")
+    @PreAuthorize("hasAuthority('cart.add')")
     public ResponseEntity<ApiResponse<CartItemResponse>> addToCart(
             @RequestBody @Valid CartRequest request) {
         CartItemResponse response = cartService.addToCart(request);
@@ -60,6 +64,7 @@ public class CartController {
     }
 
     @PutMapping("/items/{cartId}")
+    @PreAuthorize("hasAuthority('cart.update')")
     public ResponseEntity<ApiResponse<CartItemResponse>> updateCartItem(
             @PathVariable Integer cartId,
             @RequestBody @Valid CartItemUpdateRequest request) {
@@ -73,6 +78,7 @@ public class CartController {
     }
 
     @PutMapping("/items/{cartId}/variant")
+    @PreAuthorize("hasAuthority('cart.update_variant')")
     public ResponseEntity<ApiResponse<CartItemResponse>> updateCartItemVariant(
             @PathVariable Integer cartId,
             @RequestParam Integer productVariantId) {
@@ -86,6 +92,7 @@ public class CartController {
     }
 
     @DeleteMapping("/items/{cartId}")
+    @PreAuthorize("hasAuthority('cart.delete')")
     public ResponseEntity<ApiResponse<Void>> deleteCartItem(
             @PathVariable Integer cartId) {
         cartService.deleteCartItem(cartId);
@@ -98,6 +105,7 @@ public class CartController {
     }
 
     @DeleteMapping
+    @PreAuthorize("hasAuthority('cart.clear')")
     public ResponseEntity<ApiResponse<Void>> clearCart() {
         cartService.clearCart();
 

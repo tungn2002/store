@@ -6,6 +6,7 @@ import com.personal.store_api.entity.User;
 import com.personal.store_api.repository.RoleRepository;
 import com.personal.store_api.repository.StoreSettingsRepository;
 import com.personal.store_api.repository.UserRepository;
+import com.personal.store_api.service.PermissionService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -25,6 +26,7 @@ public class ApplicationInitConfig {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final StoreSettingsRepository storeSettingsRepository;
+    private final PermissionService permissionService;
 
     static final String ADMIN_NAME = "admin";
     static final String ADMIN_EMAIL = "admin@example.com";
@@ -34,6 +36,7 @@ public class ApplicationInitConfig {
     ApplicationRunner applicationRunner() {
         log.info("Initializing application.....");
         return args -> {
+            // Initialize roles first
             if (userRepository.findByEmail(ADMIN_EMAIL).isEmpty()) {
                 roleRepository.save(Role.builder()
                         .name("USER")
@@ -58,6 +61,9 @@ public class ApplicationInitConfig {
                 userRepository.save(user);
                 log.warn("admin user has been created with default password: admin, please change it");
             }
+
+            // Initialize permissions and assign to roles
+            permissionService.initializePermissions();
 
             // Initialize store settings if not exists
             if (storeSettingsRepository.findFirstByOrderByIdAsc().isEmpty()) {

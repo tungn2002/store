@@ -10,6 +10,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,6 +25,7 @@ public class ProductVariantController {
     ProductVariantService productVariantService;
 
     @GetMapping
+    @PreAuthorize("hasAuthority('variants.read')")
     public ResponseEntity<ApiResponse<PaginatedResponse<ProductVariantResponse>>> getProductVariants(
             @PathVariable Integer productId,
             @RequestParam(defaultValue = "0") int page,
@@ -39,6 +41,7 @@ public class ProductVariantController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('variants.read_one')")
     public ResponseEntity<ApiResponse<ProductVariantResponse>> getProductVariant(
             @PathVariable Integer productId,
             @PathVariable Integer id) {
@@ -52,6 +55,7 @@ public class ProductVariantController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAuthority('variants.create')")
     public ResponseEntity<ApiResponse<ProductVariantResponse>> createProductVariant(
             @PathVariable Integer productId,
             @ModelAttribute @Valid ProductVariantRequest request) throws IOException {
@@ -65,6 +69,7 @@ public class ProductVariantController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('variants.update')")
     public ResponseEntity<ApiResponse<ProductVariantResponse>> updateProductVariant(
             @PathVariable Integer productId,
             @PathVariable Integer id,
@@ -79,6 +84,7 @@ public class ProductVariantController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('variants.delete')")
     public ResponseEntity<ApiResponse<Void>> deleteProductVariant(
             @PathVariable Integer productId,
             @PathVariable Integer id) throws IOException {

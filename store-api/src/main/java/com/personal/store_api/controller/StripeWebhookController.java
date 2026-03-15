@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,13 +32,14 @@ public class StripeWebhookController {
 
     @Transactional
     @PostMapping("/stripe")
+    @PreAuthorize("hasAuthority('webhook.stripe')")
     public ResponseEntity<?> handleStripeWebhook(
             HttpServletRequest request,
             @RequestBody String payload) {
 
         String sigHeader = request.getHeader("Stripe-Signature");
 
-        log.info("Received Stripe webhook with signature: {}", sigHeader != null ? "present" : "missing");
+        log.info("Received webhook signature: {}", sigHeader != null ? "present" : "missing");
         log.info("Webhook secret configured: {}", webhookSecret != null && !webhookSecret.isEmpty() ? "yes" : "no");
 
         Event event;
@@ -65,7 +67,7 @@ public class StripeWebhookController {
             case "checkout.session.completed":
                 // Extract order_id from metadata using regex
                 String orderIdFromMetadata = extractOrderIdFromJson(payload);
-                
+
                 if (orderIdFromMetadata != null) {
                     orderId = Integer.parseInt(orderIdFromMetadata);
                     log.info("Payment completed for order: {}", orderId);
