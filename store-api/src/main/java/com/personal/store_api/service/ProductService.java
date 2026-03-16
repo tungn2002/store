@@ -19,6 +19,8 @@ import com.personal.store_api.repository.CategoryRepository;
 import com.personal.store_api.repository.BrandRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -47,12 +49,13 @@ public class ProductService {
     final ElasticsearchService elasticsearchService;
 
     @Transactional(readOnly = true)
-    public PaginatedResponse<ProductResponse> getProducts(int page, int size, String sortBy, 
+    @Cacheable(value = "products", key = "#page + '-' + #size + '-' + #sortBy + '-' + #name + '-' + #categoryId + '-' + #brandId")
+    public PaginatedResponse<ProductResponse> getProducts(int page, int size, String sortBy,
                                                            String name, Integer categoryId, Integer brandId) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy));
-        
+
         Page<Product> productPage;
-        
+
         if (name != null && !name.isEmpty() && categoryId != null && brandId != null) {
             productPage = productRepository.findByNameContainingIgnoreCaseAndCategoryIdAndBrandId(name, categoryId, brandId, pageable);
         } else if (name != null && !name.isEmpty() && categoryId != null) {
@@ -87,6 +90,7 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "products", key = "'product-' + #id")
     public ProductResponse getProduct(Integer id) {
         Product product = productRepository.findByIdWithVariants(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
@@ -95,6 +99,7 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "products", key = "'latest-5'")
     public List<NewProductResponse> getLatest5Products() {
         List<Product> products = productRepository.findTop5ByOrderByCreatedAtDesc();
 
@@ -115,6 +120,7 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "products", key = "'detail-' + #id")
     public ProductDetailResponse getProductDetail(Integer id) {
         Product product = productRepository.findByIdWithVariants(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
@@ -180,6 +186,7 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(value = "products", allEntries = true)
     public ProductResponse createProduct(ProductRequest request) throws IOException {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
@@ -208,6 +215,7 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(value = "products", allEntries = true)
     public ProductResponse updateProduct(Integer id, ProductRequest request) throws IOException {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
@@ -238,6 +246,7 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(value = "products", allEntries = true)
     public void deleteProduct(Integer id) throws IOException {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));

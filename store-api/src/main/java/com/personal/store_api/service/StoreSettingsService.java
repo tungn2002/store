@@ -10,6 +10,8 @@ import com.personal.store_api.repository.StoreSettingsRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,7 @@ public class StoreSettingsService {
     StoreSettingsMapper storeSettingsMapper;
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "storeSettings", key = "'current'")
     public StoreSettingsResponse getStoreSettings() {
         StoreSettings settings = storeSettingsRepository.findFirstByOrderByIdAsc()
                 .orElseThrow(() -> new AppException(ErrorCode.STORE_SETTINGS_NOT_FOUND));
@@ -30,6 +33,7 @@ public class StoreSettingsService {
     }
 
     @Transactional
+    @CacheEvict(value = "storeSettings", allEntries = true)
     public StoreSettingsResponse updateStoreSettings(StoreSettingsRequest request) {
         StoreSettings settings = storeSettingsRepository.findFirstByOrderByIdAsc()
                 .orElseThrow(() -> new AppException(ErrorCode.STORE_SETTINGS_NOT_FOUND));

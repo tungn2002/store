@@ -10,6 +10,8 @@ import com.personal.store_api.mapper.BrandMapper;
 import com.personal.store_api.repository.BrandRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +30,7 @@ public class BrandService {
     final BrandMapper brandMapper;
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "brands", key = "#page + '-' + #size + '-' + #sortBy")
     public PaginatedResponse<BrandResponse> getBrands(int page, int size, String sortBy) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, sortBy));
         Page<Brand> brandPage = brandRepository.findAll(pageable);
@@ -48,6 +51,7 @@ public class BrandService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "brands", key = "'all'")
     public List<BrandResponse> getAllBrands() {
         List<Brand> brands = brandRepository.findAll();
         return brands.stream()
@@ -56,6 +60,7 @@ public class BrandService {
     }
 
     @Transactional
+    @CacheEvict(value = "brands", allEntries = true)
     public BrandResponse createBrand(BrandRequest request) {
         Brand brand = Brand.builder()
                 .name(request.getName())
@@ -66,6 +71,7 @@ public class BrandService {
     }
 
     @Transactional
+    @CacheEvict(value = "brands", allEntries = true)
     public BrandResponse updateBrand(Integer id, BrandRequest request) {
         Brand brand = brandRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.BRAND_NOT_FOUND));
@@ -77,6 +83,7 @@ public class BrandService {
     }
 
     @Transactional
+    @CacheEvict(value = "brands", allEntries = true)
     public void deleteBrand(Integer id) {
         Brand brand = brandRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.BRAND_NOT_FOUND));
