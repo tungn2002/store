@@ -38,7 +38,10 @@ public class SecurityConfig {
             "/brands/all",
             "/categories/all",
             "/search",
-            "/search/suggest"
+            "/search/suggest",
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html"
     };
 
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
