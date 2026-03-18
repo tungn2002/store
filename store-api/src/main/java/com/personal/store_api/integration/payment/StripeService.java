@@ -1,4 +1,4 @@
-package com.personal.store_api.service;
+package com.personal.store_api.integration.payment;
 
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;

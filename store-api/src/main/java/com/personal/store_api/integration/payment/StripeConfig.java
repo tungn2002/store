@@ -1,4 +1,4 @@
-package com.personal.store_api.config;
+package com.personal.store_api.integration.payment;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;

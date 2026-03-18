@@ -1,4 +1,4 @@
-package com.personal.store_api.controller;
+package com.personal.store_api.integration.payment;
 
 import com.personal.store_api.entity.Order;
 import com.personal.store_api.service.OrderService;
