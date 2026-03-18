@@ -1,22 +1,24 @@
 package com.personal.store_api.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
-import lombok.experimental.FieldDefaults;
 
 import java.util.Date;
 
+/**
+ * Entity representing an invalidated (revoked) JWT token.
+ */
 @Getter
 @Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE)
 @Entity
+@Table(name = "invalidated_tokens")
 public class InvalidatedToken {
     @Id
-    String id;
+    private String id;
 
-    Date expiryTime;
+    @Column(nullable = false)
+    private Date expiryTime;
 }

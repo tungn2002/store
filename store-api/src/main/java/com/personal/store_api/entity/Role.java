@@ -5,6 +5,9 @@ import lombok.*;
 
 import java.util.Set;
 
+/**
+ * Entity representing a role (collection of permissions).
+ */
 @Getter
 @Setter
 @Builder
@@ -24,5 +27,5 @@ public class Role {
     private String displayName;
 
     @ManyToMany
-    Set<Permission> permissions;
+    private Set<Permission> permissions;
 }

@@ -3,6 +3,9 @@ package com.personal.store_api.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+/**
+ * Entity representing a permission.
+ */
 @Getter
 @Setter
 @Builder
@@ -19,5 +22,4 @@ public class Permission {
     private String name;
 
     private String displayName;
-
 }
