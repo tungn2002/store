@@ -12,6 +12,7 @@ import com.personal.store_api.entity.ProductVariant;
 import com.personal.store_api.enums.ErrorCode;
 import com.personal.store_api.exception.AppException;
 import com.personal.store_api.integration.media.CloudinaryService;
+import com.personal.store_api.integration.search.ElasticsearchService;
 import com.personal.store_api.mapper.ProductMapper;
 import com.personal.store_api.mapper.CategoryMapper;
 import com.personal.store_api.mapper.BrandMapper;

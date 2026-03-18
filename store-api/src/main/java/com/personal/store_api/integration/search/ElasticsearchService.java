@@ -1,9 +1,7 @@
-package com.personal.store_api.service;
+package com.personal.store_api.integration.search;
 
-import com.personal.store_api.document.ProductDocument;
 import com.personal.store_api.entity.Product;
 import com.personal.store_api.entity.ProductVariant;
-import com.personal.store_api.repository.ProductSearchRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -13,7 +11,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @Service

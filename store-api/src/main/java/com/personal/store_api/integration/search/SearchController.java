@@ -1,10 +1,8 @@
-package com.personal.store_api.controller;
+package com.personal.store_api.integration.search;
 
-import com.personal.store_api.document.ProductDocument;
 import com.personal.store_api.dto.ApiResponse;
 import com.personal.store_api.entity.Product;
 import com.personal.store_api.repository.ProductRepository;
-import com.personal.store_api.service.ElasticsearchService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -12,13 +10,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @RestController

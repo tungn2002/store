@@ -1,6 +1,5 @@
-package com.personal.store_api.repository;
+package com.personal.store_api.integration.search;
 
-import com.personal.store_api.document.ProductDocument;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

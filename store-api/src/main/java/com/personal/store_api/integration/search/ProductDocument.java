@@ -1,4 +1,4 @@
-package com.personal.store_api.document;
+package com.personal.store_api.integration.search;
 
 import lombok.*;
 import lombok.experimental.FieldDefaults;
