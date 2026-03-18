@@ -17,6 +17,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Global exception handler for all REST controllers.
+ * Handles validation errors, authentication errors, and application-specific exceptions.
+ */
 @RestControllerAdvice
 @Slf4j
 @RequiredArgsConstructor
@@ -24,87 +28,103 @@ public class GlobalExceptionHandler {
 
     private final MessageUtils messageUtils;
 
-    @ExceptionHandler(value = MethodArgumentNotValidException.class)
-    ResponseEntity<ApiResponse> handleValidationException(MethodArgumentNotValidException exception) {
-        List<FieldError> fieldErrors = exception.getBindingResult().getFieldErrors();
-        String message = fieldErrors.stream()
-                .map(error -> error.getField() + ": " + messageUtils.getMessage(error.getDefaultMessage()))
-                .collect(Collectors.joining(", "));
-
-        ApiResponse apiResponse = ApiResponse.builder()
-                .code(ErrorCode.INVALID_KEY.getCode())
-                .message(message)
-                .build();
-
-        return ResponseEntity.badRequest().body(apiResponse);
+    /**
+     * Handle validation errors from @Valid annotations.
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValidException(
+            MethodArgumentNotValidException exception) {
+        String message = buildValidationMessage(exception.getBindingResult().getFieldErrors());
+        return ResponseEntity.badRequest().body(createErrorResponse(ErrorCode.INVALID_KEY, message));
     }
 
-    @ExceptionHandler(value = BindException.class)
-    ResponseEntity<ApiResponse> handleBindException(BindException exception) {
-        List<FieldError> fieldErrors = exception.getBindingResult().getFieldErrors();
-        String message = fieldErrors.stream()
-                .map(error -> error.getField() + ": " + messageUtils.getMessage(error.getDefaultMessage()))
-                .collect(Collectors.joining(", "));
-
-        ApiResponse apiResponse = ApiResponse.builder()
-                .code(ErrorCode.INVALID_KEY.getCode())
-                .message(message)
-                .build();
-
-        return ResponseEntity.badRequest().body(apiResponse);
+    /**
+     * Handle binding errors from @ModelAttribute annotations.
+     */
+    @ExceptionHandler(BindException.class)
+    ResponseEntity<ApiResponse<Void>> handleBindException(BindException exception) {
+        String message = buildValidationMessage(exception.getBindingResult().getFieldErrors());
+        return ResponseEntity.badRequest().body(createErrorResponse(ErrorCode.INVALID_KEY, message));
     }
 
-    @ExceptionHandler(value = BadCredentialsException.class)
-    ResponseEntity<ApiResponse> handleBadCredentialsException(BadCredentialsException exception) {
+    /**
+     * Handle bad credentials error (invalid username/password).
+     */
+    @ExceptionHandler(BadCredentialsException.class)
+    ResponseEntity<ApiResponse<Void>> handleBadCredentialsException(BadCredentialsException exception) {
         log.warn("Bad credentials attempt: {}", exception.getMessage());
-
-        ApiResponse apiResponse = new ApiResponse();
-        apiResponse.setCode(ErrorCode.INVALID_CREDENTIALS.getCode());
-        apiResponse.setMessage(messageUtils.getMessage(ErrorCode.INVALID_CREDENTIALS));
-
         return ResponseEntity.status(ErrorCode.INVALID_CREDENTIALS.getStatusCode())
-                .body(apiResponse);
+                .body(createErrorResponse(ErrorCode.INVALID_CREDENTIALS));
     }
 
-    @ExceptionHandler(value = AppException.class)
-    ResponseEntity<ApiResponse> handlingAppException(AppException e) {
-        ErrorCode errorCode = e.getErrorCode();
-        
+    /**
+     * Handle application-specific exceptions.
+     */
+    @ExceptionHandler(AppException.class)
+    ResponseEntity<ApiResponse<Void>> handleAppException(AppException exception) {
+        ErrorCode errorCode = exception.getErrorCode();
+
         // Handle AppException without ErrorCode (custom message only)
         if (errorCode == null) {
-            log.error("AppException: ", e);
-            ApiResponse apiResponse = new ApiResponse();
-            apiResponse.setCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
-            apiResponse.setMessage(e.getMessage());
-            return ResponseEntity.badRequest().body(apiResponse);
+            log.error("AppException without error code: {}", exception.getMessage(), exception);
+            ApiResponse<Void> response = ApiResponse.<Void>builder()
+                    .code(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode())
+                    .message(exception.getMessage())
+                    .build();
+            return ResponseEntity.badRequest().body(response);
         }
 
-        ApiResponse apiResponse = new ApiResponse();
-        apiResponse.setCode(errorCode.getCode());
-        apiResponse.setMessage(messageUtils.getMessage(errorCode));
-
-        return ResponseEntity.status(errorCode.getStatusCode()).body(apiResponse);
-    }
-
-    @ExceptionHandler(value = AccessDeniedException.class)
-    ResponseEntity<ApiResponse> handlingAccessDeniedException(AccessDeniedException exception) {
-        ErrorCode errorCode = ErrorCode.UNAUTHORIZED;
-
+        log.error("AppException: {}", errorCode.getMessage(), exception);
         return ResponseEntity.status(errorCode.getStatusCode())
-                .body(ApiResponse.builder()
-                        .code(errorCode.getCode())
-                        .message(messageUtils.getMessage(errorCode))
-                        .build());
+                .body(createErrorResponse(errorCode));
     }
 
+    /**
+     * Handle access denied errors (authorization failures).
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException exception) {
+        log.warn("Access denied: {}", exception.getMessage());
+        return ResponseEntity.status(ErrorCode.UNAUTHORIZED.getStatusCode())
+                .body(createErrorResponse(ErrorCode.UNAUTHORIZED));
+    }
+
+    /**
+     * Handle all other unhandled exceptions.
+     */
     @ExceptionHandler(Exception.class)
-    ResponseEntity<ApiResponse> handlingException(Exception exception) {
-        log.error("Exception: ", exception);
+    ResponseEntity<ApiResponse<Void>> handleGenericException(Exception exception) {
+        log.error("Unexpected exception: ", exception);
+        return ResponseEntity.badRequest()
+                .body(createErrorResponse(ErrorCode.UNCATEGORIZED_EXCEPTION));
+    }
 
-        ApiResponse apiResponse = new ApiResponse();
-        apiResponse.setCode(ErrorCode.UNCATEGORIZED_EXCEPTION.getCode());
-        apiResponse.setMessage(messageUtils.getMessage(ErrorCode.UNCATEGORIZED_EXCEPTION));
+    /**
+     * Build validation error message from field errors.
+     */
+    private String buildValidationMessage(List<FieldError> fieldErrors) {
+        return fieldErrors.stream()
+                .map(error -> error.getField() + ": " + messageUtils.getMessage(error.getDefaultMessage()))
+                .collect(Collectors.joining(", "));
+    }
 
-        return ResponseEntity.badRequest().body(apiResponse);
+    /**
+     * Create error response with default message from ErrorCode.
+     */
+    private ApiResponse<Void> createErrorResponse(ErrorCode errorCode) {
+        return ApiResponse.<Void>builder()
+                .code(errorCode.getCode())
+                .message(messageUtils.getMessage(errorCode))
+                .build();
+    }
+
+    /**
+     * Create error response with custom message.
+     */
+    private ApiResponse<Void> createErrorResponse(ErrorCode errorCode, String customMessage) {
+        return ApiResponse.<Void>builder()
+                .code(errorCode.getCode())
+                .message(customMessage)
+                .build();
     }
 }
