@@ -1,4 +1,4 @@
-package com.personal.store_api.service;
+package com.personal.store_api.integration.media;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;

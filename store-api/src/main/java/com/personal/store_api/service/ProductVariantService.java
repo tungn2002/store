@@ -7,6 +7,7 @@ import com.personal.store_api.entity.Product;
 import com.personal.store_api.entity.ProductVariant;
 import com.personal.store_api.enums.ErrorCode;
 import com.personal.store_api.exception.AppException;
+import com.personal.store_api.integration.media.CloudinaryService;
 import com.personal.store_api.mapper.ProductVariantMapper;
 import com.personal.store_api.repository.ProductRepository;
 import com.personal.store_api.repository.ProductVariantRepository;
@@ -21,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
