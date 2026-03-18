@@ -7,9 +7,7 @@ import com.personal.store_api.repository.RoleRepository;
 import com.personal.store_api.repository.StoreSettingsRepository;
 import com.personal.store_api.repository.UserRepository;
 import com.personal.store_api.service.PermissionService;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
@@ -31,51 +29,55 @@ public class ApplicationInitConfig {
     static final String ADMIN_NAME = "admin";
     static final String ADMIN_EMAIL = "admin@example.com";
     static final String ADMIN_PASSWORD = "admin";
+    static final String DEFAULT_STORE_NAME = "My Store";
+    static final String DEFAULT_STORE_ADDRESS = "123 Main Street, City, Country";
 
     @Bean
     ApplicationRunner applicationRunner() {
         log.info("Initializing application.....");
         return args -> {
-            // Initialize roles first
-            if (userRepository.findByEmail(ADMIN_EMAIL).isEmpty()) {
-                roleRepository.save(Role.builder()
-                        .name("USER")
-                        .displayName("User")
-                        .build());
-
-                Role adminRole = roleRepository.save(Role.builder()
-                        .name("ADMIN")
-                        .displayName("Admin")
-                        .build());
-
-                var roles = new HashSet<Role>();
-                roles.add(adminRole);
-
-                User user = User.builder()
-                        .email(ADMIN_EMAIL)
-                        .name(ADMIN_NAME)
-                        .password(passwordEncoder.encode(ADMIN_PASSWORD))
-                        .roles(roles)
-                        .build();
-
-                userRepository.save(user);
-                log.warn("admin user has been created with default password: admin, please change it");
-            }
-
-            // Initialize permissions and assign to roles
+            initializeAdminUser();
             permissionService.initializePermissions();
-
-            // Initialize store settings if not exists
-            if (storeSettingsRepository.findFirstByOrderByIdAsc().isEmpty()) {
-                StoreSettings settings = StoreSettings.builder()
-                        .name("My Store")
-                        .address("123 Main Street, City, Country")
-                        .build();
-                storeSettingsRepository.save(settings);
-                log.info("Default store settings have been created");
-            }
-
+            initializeStoreSettings();
             log.info("Application initialization completed .....");
         };
+    }
+
+    private void initializeAdminUser() {
+        if (userRepository.findByEmail(ADMIN_EMAIL).isEmpty()) {
+            roleRepository.save(Role.builder()
+                    .name("USER")
+                    .displayName("User")
+                    .build());
+
+            Role adminRole = roleRepository.save(Role.builder()
+                    .name("ADMIN")
+                    .displayName("Admin")
+                    .build());
+
+            var roles = new HashSet<Role>();
+            roles.add(adminRole);
+
+            User user = User.builder()
+                    .email(ADMIN_EMAIL)
+                    .name(ADMIN_NAME)
+                    .password(passwordEncoder.encode(ADMIN_PASSWORD))
+                    .roles(roles)
+                    .build();
+
+            userRepository.save(user);
+            log.warn("admin user has been created with default password: admin, please change it");
+        }
+    }
+
+    private void initializeStoreSettings() {
+        if (storeSettingsRepository.findFirstByOrderByIdAsc().isEmpty()) {
+            StoreSettings settings = StoreSettings.builder()
+                    .name(DEFAULT_STORE_NAME)
+                    .address(DEFAULT_STORE_ADDRESS)
+                    .build();
+            storeSettingsRepository.save(settings);
+            log.info("Default store settings have been created");
+        }
     }
 }
