@@ -11,28 +11,27 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Map;
 
+/**
+ * Service for uploading and deleting images on Cloudinary.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CloudinaryService {
 
-    final Cloudinary cloudinary;
+    private final Cloudinary cloudinary;
 
     @Value("${cloudinary.folder:store-api}")
-    String folder;
+    private String folder;
 
-    public Map uploadFile(MultipartFile file) throws IOException {
-        log.info("Uploading file: {} to Cloudinary", file.getOriginalFilename());
-
-        Map<String, Object> uploadParams = ObjectUtils.asMap(
-                "folder", folder,
-                "resource_type", "auto"
-        );
-
-        return cloudinary.uploader().upload(file.getBytes(), uploadParams);
-    }
-
-    public Map uploadImage(MultipartFile file) throws IOException {
+    /**
+     * Upload an image to Cloudinary.
+     *
+     * @param file the image file to upload
+     * @return upload result map containing url, public_id, etc.
+     * @throws IOException if upload fails
+     */
+    public Map<String, Object> uploadImage(MultipartFile file) throws IOException {
         log.info("Uploading image: {} to Cloudinary", file.getOriginalFilename());
 
         Map<String, Object> uploadParams = ObjectUtils.asMap(
@@ -43,23 +42,17 @@ public class CloudinaryService {
         return cloudinary.uploader().upload(file.getBytes(), uploadParams);
     }
 
-    public void deleteFile(String fileId) throws IOException {
-        log.info("Deleting file: {} from Cloudinary", fileId);
-
-        Map deleteResult = cloudinary.uploader().destroy(fileId, ObjectUtils.emptyMap());
-
-        if (!"ok".equals(deleteResult.get("result"))) {
-            log.error("Failed to delete file: {}. Result: {}", fileId, deleteResult.get("result"));
-            throw new IOException("Failed to delete file: " + fileId);
-        }
-
-        log.info("Successfully deleted file: {}", fileId);
-    }
-
+    /**
+     * Delete an image from Cloudinary by public ID.
+     *
+     * @param publicId the public ID of the image to delete
+     * @throws IOException if delete fails
+     */
     public void deleteImage(String publicId) throws IOException {
         log.info("Deleting image: {} from Cloudinary", publicId);
 
-        Map deleteResult = cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "image"));
+        Map<String, Object> deleteResult = cloudinary.uploader()
+                .destroy(publicId, ObjectUtils.asMap("resource_type", "image"));
 
         if (!"ok".equals(deleteResult.get("result"))) {
             log.error("Failed to delete image: {}. Result: {}", publicId, deleteResult.get("result"));
