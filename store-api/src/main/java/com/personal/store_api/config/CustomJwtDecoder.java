@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.spec.SecretKeySpec;
 import java.text.ParseException;
 import java.util.Objects;
-
+// for logout
 @Component
 @RequiredArgsConstructor
 public class CustomJwtDecoder implements JwtDecoder {
@@ -33,8 +33,14 @@ public class CustomJwtDecoder implements JwtDecoder {
         try {
             SignedJWT signedJWT = jwtTokenProvider.verifyToken(token);
 
+            // Check if token is revoked (logout)
+            String tokenId = signedJWT.getJWTClaimsSet().getJWTID();
+            if (invalidatedTokenRepository.existsById(tokenId)) {
+                throw new JwtException("Token has been revoked");
+            }
+
         } catch (JOSEException | ParseException e) {
-        throw new JwtException(e.getMessage());
+            throw new JwtException(e.getMessage());
         }
         if (Objects.isNull(nimbusJwtDecoder)) {
             SecretKeySpec secretKeySpec = new SecretKeySpec(jwtSecret.getBytes(), "HS256");
