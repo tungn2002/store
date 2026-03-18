@@ -15,40 +15,50 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.text.ParseException;
-import java.util.Objects;
-// for logout
+
+/**
+ * Custom JWT Decoder that adds revoked token checking on top of standard JWT validation.
+ * Note: Revoked token check is already performed in JwtTokenProvider.verifyToken()
+ */
 @Component
 @RequiredArgsConstructor
 public class CustomJwtDecoder implements JwtDecoder {
-    private final JwtTokenProvider jwtTokenProvider;
-    private final InvalidatedTokenRepository invalidatedTokenRepository;
 
-    private NimbusJwtDecoder nimbusJwtDecoder = null;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Value("${jwt.signerKey}")
     private String jwtSecret;
 
+    private NimbusJwtDecoder nimbusJwtDecoder;
+
     @Override
     public Jwt decode(String token) throws JwtException {
         try {
-            SignedJWT signedJWT = jwtTokenProvider.verifyToken(token);
+            // Verify token signature and check revoked status (already done in JwtTokenProvider)
+            jwtTokenProvider.verifyToken(token);
 
-            // Check if token is revoked (logout)
-            String tokenId = signedJWT.getJWTClaimsSet().getJWTID();
-            if (invalidatedTokenRepository.existsById(tokenId)) {
-                throw new JwtException("Token has been revoked");
-            }
+            // Decode token with lazy-initialized decoder
+            return getNimbusJwtDecoder().decode(token);
 
         } catch (JOSEException | ParseException e) {
-            throw new JwtException(e.getMessage());
+            throw new JwtException("Invalid JWT token: " + e.getMessage(), e);
         }
-        if (Objects.isNull(nimbusJwtDecoder)) {
-            SecretKeySpec secretKeySpec = new SecretKeySpec(jwtSecret.getBytes(), "HS256");
-            nimbusJwtDecoder = NimbusJwtDecoder.withSecretKey(secretKeySpec)
-                    .macAlgorithm(MacAlgorithm.HS256)
-                    .build();
-        }
+    }
 
-        return nimbusJwtDecoder.decode(token);
+    /**
+     * Lazy initialization of NimbusJwtDecoder using singleton pattern
+     */
+    private NimbusJwtDecoder getNimbusJwtDecoder() {
+        if (nimbusJwtDecoder == null) {
+            nimbusJwtDecoder = createNimbusJwtDecoder();
+        }
+        return nimbusJwtDecoder;
+    }
+
+    private NimbusJwtDecoder createNimbusJwtDecoder() {
+        SecretKeySpec secretKeySpec = new SecretKeySpec(jwtSecret.getBytes(), "HS256");
+        return NimbusJwtDecoder.withSecretKey(secretKeySpec)
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
     }
 }

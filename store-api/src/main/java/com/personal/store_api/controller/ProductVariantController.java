@@ -6,9 +6,7 @@ import com.personal.store_api.dto.response.PaginatedResponse;
 import com.personal.store_api.dto.response.ProductVariantResponse;
 import com.personal.store_api.service.ProductVariantService;
 import jakarta.validation.Valid;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -16,14 +14,19 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 
+/**
+ * Controller for product variant management operations.
+ */
 @RestController
 @RequestMapping("/products/{productId}/variants")
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ProductVariantController {
 
-    ProductVariantService productVariantService;
+    private final ProductVariantService productVariantService;
 
+    /**
+     * Get paginated list of variants for a product.
+     */
     @GetMapping
     @PreAuthorize("hasAuthority('variants.read')")
     public ResponseEntity<ApiResponse<PaginatedResponse<ProductVariantResponse>>> getProductVariants(
@@ -32,42 +35,36 @@ public class ProductVariantController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy) {
         PaginatedResponse<ProductVariantResponse> response = productVariantService.getProductVariants(productId, page, size, sortBy);
-
-        ApiResponse<PaginatedResponse<ProductVariantResponse>> apiResponse = ApiResponse.<PaginatedResponse<ProductVariantResponse>>builder()
-                .result(response)
-                .build();
-
-        return ResponseEntity.ok(apiResponse);
+        return ResponseEntity.ok(buildResponse(response));
     }
 
+    /**
+     * Get variant by ID.
+     */
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('variants.read_one')")
     public ResponseEntity<ApiResponse<ProductVariantResponse>> getProductVariant(
             @PathVariable Integer productId,
             @PathVariable Integer id) {
         ProductVariantResponse response = productVariantService.getProductVariant(id);
-
-        ApiResponse<ProductVariantResponse> apiResponse = ApiResponse.<ProductVariantResponse>builder()
-                .result(response)
-                .build();
-
-        return ResponseEntity.ok(apiResponse);
+        return ResponseEntity.ok(buildResponse(response));
     }
 
+    /**
+     * Create a new variant for a product.
+     */
     @PostMapping
     @PreAuthorize("hasAuthority('variants.create')")
     public ResponseEntity<ApiResponse<ProductVariantResponse>> createProductVariant(
             @PathVariable Integer productId,
             @ModelAttribute @Valid ProductVariantRequest request) throws IOException {
         ProductVariantResponse response = productVariantService.createProductVariant(request);
-
-        ApiResponse<ProductVariantResponse> apiResponse = ApiResponse.<ProductVariantResponse>builder()
-                .result(response)
-                .build();
-
-        return ResponseEntity.ok(apiResponse);
+        return ResponseEntity.ok(buildResponse(response));
     }
 
+    /**
+     * Update an existing variant.
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('variants.update')")
     public ResponseEntity<ApiResponse<ProductVariantResponse>> updateProductVariant(
@@ -75,25 +72,35 @@ public class ProductVariantController {
             @PathVariable Integer id,
             @ModelAttribute @Valid ProductVariantRequest request) throws IOException {
         ProductVariantResponse response = productVariantService.updateProductVariant(id, request);
-
-        ApiResponse<ProductVariantResponse> apiResponse = ApiResponse.<ProductVariantResponse>builder()
-                .result(response)
-                .build();
-
-        return ResponseEntity.ok(apiResponse);
+        return ResponseEntity.ok(buildResponse(response));
     }
 
+    /**
+     * Delete a variant by ID.
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('variants.delete')")
     public ResponseEntity<ApiResponse<Void>> deleteProductVariant(
             @PathVariable Integer productId,
             @PathVariable Integer id) throws IOException {
         productVariantService.deleteProductVariant(id);
+        return ResponseEntity.ok(buildResponse());
+    }
 
-        ApiResponse<Void> apiResponse = ApiResponse.<Void>builder()
-                .result(null)
+    /**
+     * Build success response with result.
+     */
+    private <T> ApiResponse<T> buildResponse(T result) {
+        return ApiResponse.<T>builder()
+                .result(result)
                 .build();
+    }
 
-        return ResponseEntity.ok(apiResponse);
+    /**
+     * Build success response without result.
+     */
+    private ApiResponse<Void> buildResponse() {
+        return ApiResponse.<Void>builder()
+                .build();
     }
 }

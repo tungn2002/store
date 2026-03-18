@@ -1,8 +1,7 @@
-package com.personal.store_api.handler;
+package com.personal.store_api.exception;
 
 import com.personal.store_api.dto.ApiResponse;
 import com.personal.store_api.enums.ErrorCode;
-import com.personal.store_api.exception.AppException;
 import com.personal.store_api.util.MessageUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

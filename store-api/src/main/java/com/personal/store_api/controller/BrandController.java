@@ -6,9 +6,7 @@ import com.personal.store_api.dto.response.BrandResponse;
 import com.personal.store_api.dto.response.PaginatedResponse;
 import com.personal.store_api.service.BrandService;
 import jakarta.validation.Valid;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -23,14 +21,19 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * Controller for brand management operations.
+ */
 @RestController
 @RequestMapping("/brands")
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class BrandController {
 
-    BrandService brandService;
+    private final BrandService brandService;
 
+    /**
+     * Get paginated list of brands.
+     */
     @GetMapping
     @PreAuthorize("hasAuthority('brands.read')")
     public ResponseEntity<ApiResponse<PaginatedResponse<BrandResponse>>> getBrands(
@@ -38,61 +41,65 @@ public class BrandController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy) {
         PaginatedResponse<BrandResponse> response = brandService.getBrands(page, size, sortBy);
-
-        ApiResponse<PaginatedResponse<BrandResponse>> apiResponse = ApiResponse.<PaginatedResponse<BrandResponse>>builder()
-                .result(response)
-                .build();
-
-        return ResponseEntity.ok(apiResponse);
+        return ResponseEntity.ok(buildResponse(response));
     }
 
+    /**
+     * Get all brands (no pagination).
+     */
     @GetMapping("/all")
     public ResponseEntity<ApiResponse<List<BrandResponse>>> getAllBrands() {
         List<BrandResponse> response = brandService.getAllBrands();
-
-        ApiResponse<List<BrandResponse>> apiResponse = ApiResponse.<List<BrandResponse>>builder()
-                .result(response)
-                .build();
-
-        return ResponseEntity.ok(apiResponse);
+        return ResponseEntity.ok(buildResponse(response));
     }
 
+    /**
+     * Create a new brand.
+     */
     @PostMapping
     @PreAuthorize("hasAuthority('brands.create')")
     public ResponseEntity<ApiResponse<BrandResponse>> createBrand(
             @RequestBody @Valid BrandRequest request) {
         BrandResponse response = brandService.createBrand(request);
-
-        ApiResponse<BrandResponse> apiResponse = ApiResponse.<BrandResponse>builder()
-                .result(response)
-                .build();
-
-        return ResponseEntity.ok(apiResponse);
+        return ResponseEntity.ok(buildResponse(response));
     }
 
+    /**
+     * Update an existing brand.
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('brands.update')")
     public ResponseEntity<ApiResponse<BrandResponse>> updateBrand(
             @PathVariable Integer id,
             @RequestBody @Valid BrandRequest request) {
         BrandResponse response = brandService.updateBrand(id, request);
-
-        ApiResponse<BrandResponse> apiResponse = ApiResponse.<BrandResponse>builder()
-                .result(response)
-                .build();
-
-        return ResponseEntity.ok(apiResponse);
+        return ResponseEntity.ok(buildResponse(response));
     }
 
+    /**
+     * Delete a brand by ID.
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('brands.delete')")
     public ResponseEntity<ApiResponse<Void>> deleteBrand(@PathVariable Integer id) {
         brandService.deleteBrand(id);
+        return ResponseEntity.ok(buildResponse());
+    }
 
-        ApiResponse<Void> apiResponse = ApiResponse.<Void>builder()
-                .result(null)
+    /**
+     * Build success response with result.
+     */
+    private <T> ApiResponse<T> buildResponse(T result) {
+        return ApiResponse.<T>builder()
+                .result(result)
                 .build();
+    }
 
-        return ResponseEntity.ok(apiResponse);
+    /**
+     * Build success response without result.
+     */
+    private ApiResponse<Void> buildResponse() {
+        return ApiResponse.<Void>builder()
+                .build();
     }
 }

@@ -7,52 +7,85 @@ import com.personal.store_api.dto.request.LogoutRequest;
 import com.personal.store_api.dto.request.RegisterRequest;
 import com.personal.store_api.dto.response.AuthenticationResponse;
 import com.personal.store_api.service.AuthService;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.ParseException;
 
+/**
+ * Controller for authentication operations (login, register, logout).
+ */
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class AuthController {
-    AuthService authService;
 
+    private final AuthService authService;
+
+    /**
+     * Register a new user.
+     */
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse<AuthenticationResponse>> register(@RequestBody RegisterRequest request) {
+    public ResponseEntity<ApiResponse<AuthenticationResponse>> register(
+            @RequestBody RegisterRequest request) {
         AuthenticationResponse authResponse = authService.register(request);
-        ApiResponse<AuthenticationResponse> response =  ApiResponse.<AuthenticationResponse>builder().result(authResponse).build();
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(buildResponse(authResponse));
     }
 
+    /**
+     * Authenticate user and return JWT token.
+     */
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse<AuthenticationResponse>> login(@RequestBody AuthenticationRequest request) {
+    public ResponseEntity<ApiResponse<AuthenticationResponse>> login(
+            @RequestBody AuthenticationRequest request) {
         AuthenticationResponse authResponse = authService.authenticate(request);
-        ApiResponse<AuthenticationResponse> response =  ApiResponse.<AuthenticationResponse>builder().result(authResponse).build();
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(buildResponse(authResponse));
     }
 
+    /**
+     * Test endpoint for token validation.
+     */
     @GetMapping("/token")
     @PreAuthorize("hasAuthority('auth.token')")
     public String testToken() {
-        return "abc";
+        return "OK";
     }
 
-    @PreAuthorize("hasAuthority('auth.token2')")
+    /**
+     * Test endpoint for token validation with different permission.
+     */
     @GetMapping("/token2")
+    @PreAuthorize("hasAuthority('auth.token2')")
     public String testToken2() {
-        return "abc";
+        return "OK";
     }
 
+    /**
+     * Logout user and invalidate token.
+     */
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse<Void>> logout(@RequestBody LogoutRequest request) throws ParseException, JOSEException {
+    public ResponseEntity<ApiResponse<Void>> logout(
+            @RequestBody LogoutRequest request) throws ParseException, JOSEException {
         authService.logout(request);
-        ApiResponse<Void> response = ApiResponse.<Void>builder().build();
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(buildResponse());
+    }
+
+    /**
+     * Build success response with result.
+     */
+    private <T> ApiResponse<T> buildResponse(T result) {
+        return ApiResponse.<T>builder()
+                .result(result)
+                .build();
+    }
+
+    /**
+     * Build success response without result.
+     */
+    private ApiResponse<Void> buildResponse() {
+        return ApiResponse.<Void>builder()
+                .build();
     }
 }

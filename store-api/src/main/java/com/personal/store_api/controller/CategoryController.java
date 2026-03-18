@@ -6,9 +6,7 @@ import com.personal.store_api.dto.response.CategoryResponse;
 import com.personal.store_api.dto.response.PaginatedResponse;
 import com.personal.store_api.service.CategoryService;
 import jakarta.validation.Valid;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,14 +22,19 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * Controller for category management operations.
+ */
 @RestController
 @RequestMapping("/categories")
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CategoryController {
 
-    CategoryService categoryService;
+    private final CategoryService categoryService;
 
+    /**
+     * Get paginated list of categories.
+     */
     @GetMapping
     @PreAuthorize("hasAuthority('categories.read')")
     public ResponseEntity<ApiResponse<PaginatedResponse<CategoryResponse>>> getCategories(
@@ -39,61 +42,65 @@ public class CategoryController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy) {
         PaginatedResponse<CategoryResponse> response = categoryService.getCategories(page, size, sortBy);
-
-        ApiResponse<PaginatedResponse<CategoryResponse>> apiResponse = ApiResponse.<PaginatedResponse<CategoryResponse>>builder()
-                .result(response)
-                .build();
-
-        return ResponseEntity.ok(apiResponse);
+        return ResponseEntity.ok(buildResponse(response));
     }
 
+    /**
+     * Get all categories (no pagination).
+     */
     @GetMapping("/all")
     public ResponseEntity<ApiResponse<List<CategoryResponse>>> getAllCategories() {
         List<CategoryResponse> response = categoryService.getAllCategories();
-
-        ApiResponse<List<CategoryResponse>> apiResponse = ApiResponse.<List<CategoryResponse>>builder()
-                .result(response)
-                .build();
-
-        return ResponseEntity.ok(apiResponse);
+        return ResponseEntity.ok(buildResponse(response));
     }
 
+    /**
+     * Create a new category.
+     */
     @PostMapping
     @PreAuthorize("hasAuthority('categories.create')")
     public ResponseEntity<ApiResponse<CategoryResponse>> createCategory(
             @ModelAttribute @Valid CategoryRequest request) throws IOException {
         CategoryResponse response = categoryService.createCategory(request);
-
-        ApiResponse<CategoryResponse> apiResponse = ApiResponse.<CategoryResponse>builder()
-                .result(response)
-                .build();
-
-        return ResponseEntity.ok(apiResponse);
+        return ResponseEntity.ok(buildResponse(response));
     }
 
+    /**
+     * Update an existing category.
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('categories.update')")
     public ResponseEntity<ApiResponse<CategoryResponse>> updateCategory(
             @PathVariable Integer id,
             @ModelAttribute @Valid CategoryRequest request) throws IOException {
         CategoryResponse response = categoryService.updateCategory(id, request);
-
-        ApiResponse<CategoryResponse> apiResponse = ApiResponse.<CategoryResponse>builder()
-                .result(response)
-                .build();
-
-        return ResponseEntity.ok(apiResponse);
+        return ResponseEntity.ok(buildResponse(response));
     }
 
+    /**
+     * Delete a category by ID.
+     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('categories.delete')")
     public ResponseEntity<ApiResponse<Void>> deleteCategory(@PathVariable Integer id) throws IOException {
         categoryService.deleteCategory(id);
+        return ResponseEntity.ok(buildResponse());
+    }
 
-        ApiResponse<Void> apiResponse = ApiResponse.<Void>builder()
-                .result(null)
+    /**
+     * Build success response with result.
+     */
+    private <T> ApiResponse<T> buildResponse(T result) {
+        return ApiResponse.<T>builder()
+                .result(result)
                 .build();
+    }
 
-        return ResponseEntity.ok(apiResponse);
+    /**
+     * Build success response without result.
+     */
+    private ApiResponse<Void> buildResponse() {
+        return ApiResponse.<Void>builder()
+                .build();
     }
 }
