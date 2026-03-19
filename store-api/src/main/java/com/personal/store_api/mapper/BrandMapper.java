@@ -10,6 +10,8 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface BrandMapper {
 
+    Brand toBrand(BrandRequest request);
+
     BrandResponse toBrandResponse(Brand brand);
 
     void updateBrandFromRequest(@MappingTarget Brand brand, BrandRequest request);

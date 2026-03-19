@@ -26,8 +26,8 @@ import java.util.List;
 @Slf4j
 public class BrandService {
 
-    final BrandRepository brandRepository;
-    final BrandMapper brandMapper;
+    private final BrandRepository brandRepository;
+    private final BrandMapper brandMapper;
 
     @Transactional(readOnly = true)
     @Cacheable(value = "brands", key = "#page + '-' + #size + '-' + #sortBy")
@@ -62,10 +62,7 @@ public class BrandService {
     @Transactional
     @CacheEvict(value = "brands", allEntries = true)
     public BrandResponse createBrand(BrandRequest request) {
-        Brand brand = Brand.builder()
-                .name(request.getName())
-                .build();
-
+        Brand brand = brandMapper.toBrand(request);
         Brand savedBrand = brandRepository.save(brand);
         return brandMapper.toBrandResponse(savedBrand);
     }
@@ -77,17 +74,15 @@ public class BrandService {
                 .orElseThrow(() -> new AppException(ErrorCode.BRAND_NOT_FOUND));
 
         brand.setName(request.getName());
-
-        Brand updatedBrand = brandRepository.save(brand);
-        return brandMapper.toBrandResponse(updatedBrand);
+        return brandMapper.toBrandResponse(brand);
     }
 
     @Transactional
     @CacheEvict(value = "brands", allEntries = true)
     public void deleteBrand(Integer id) {
-        Brand brand = brandRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.BRAND_NOT_FOUND));
-
-        brandRepository.delete(brand);
+        if (!brandRepository.existsById(id)) {
+            throw new AppException(ErrorCode.BRAND_NOT_FOUND);
+        }
+        brandRepository.deleteById(id);
     }
 }
