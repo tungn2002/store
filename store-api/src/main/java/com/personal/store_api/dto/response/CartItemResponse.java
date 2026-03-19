@@ -22,7 +22,6 @@ public class CartItemResponse {
     BigDecimal price;
     Integer quantity;
     Integer stockQuantity;
-    BigDecimal subtotal;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
 }

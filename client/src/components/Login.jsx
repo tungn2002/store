@@ -86,39 +86,33 @@ const LoginForm = ({ toggleView, addToast }) => {
     setLoading(true);
     try {
       const response = await authAPI.login(formData.email, formData.password);
-      if (response.code === 1000 && response.result?.token) {
-        // Store token
-        authStorage.setToken(response.result.token);
-        
-        // Fetch user profile after login
-        try {
-          const profileResponse = await fetch('http://localhost:8080/profile', {
-            headers: {
-              'Authorization': `Bearer ${response.result.token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-          
-          // Handle 401 Unauthorized
-          if (profileResponse.status === 401) {
-            authStorage.removeToken();
-            window.location.href = '/?view=login';
-            return;
-          }
-          
+      
+      if (!response.result || !response.result.token) {
+        throw new Error('Không nhận được token từ server');
+      }
+
+      // Fetch user profile after login
+      try {
+        const profileResponse = await fetch('http://localhost:8080/profile', {
+          headers: {
+            'Authorization': `Bearer ${response.result.token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (profileResponse.ok) {
           const profileData = await profileResponse.json();
           if (profileData.result) {
             authStorage.setUser(profileData.result);
           }
-        } catch (profileError) {
-          console.error('Failed to fetch profile:', profileError);
         }
+      } catch (profileError) {
+        console.warn('Failed to fetch profile:', profileError);
+      }
 
-        addToast('Đăng nhập thành công!', 'success');
-        toggleView(); // Call toggleView to update parent state
-      } else {
-        setErrors({ submit: response.message || 'Đăng nhập thất bại' });
-        addToast(response.message || 'Đăng nhập thất bại', 'error');
+      addToast('Đăng nhập thành công!', 'success');
+      if (typeof toggleView === 'function') {
+        toggleView();
       }
     } catch (error) {
       setErrors({ submit: error.message || 'Có lỗi xảy ra, vui lòng thử lại' });

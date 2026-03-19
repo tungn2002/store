@@ -39,31 +39,55 @@ public class SearchService {
 
         Page<Product> productPage;
 
+        // Handle price sorting separately since it's in ProductVariant (not Product)
+        boolean sortByPrice = "price".equalsIgnoreCase(sortBy);
+        boolean sortDesc = "desc".equalsIgnoreCase(sortDirection);
+
         // Handle different filter combinations
         if (hasText(query) && hasText(brandName) && hasText(categoryName)) {
-            productPage = productRepository.searchWithFilters(
-                    query, brandName, categoryName, minPrice, maxPrice, pageable);
+            productPage = sortByPrice
+                    ? (sortDesc ? productRepository.searchWithFiltersPriceDesc(query, brandName, categoryName, minPrice, maxPrice, pageable)
+                                : productRepository.searchWithFiltersPriceAsc(query, brandName, categoryName, minPrice, maxPrice, pageable))
+                    : productRepository.searchWithFilters(query, brandName, categoryName, minPrice, maxPrice, pageable);
         } else if (hasText(brandName) && hasText(categoryName)) {
-            productPage = productRepository.searchWithFilters(
-                    "", brandName, categoryName, minPrice, maxPrice, pageable);
+            productPage = sortByPrice
+                    ? (sortDesc ? productRepository.searchWithFiltersPriceDesc("", brandName, categoryName, minPrice, maxPrice, pageable)
+                                : productRepository.searchWithFiltersPriceAsc("", brandName, categoryName, minPrice, maxPrice, pageable))
+                    : productRepository.searchWithFilters("", brandName, categoryName, minPrice, maxPrice, pageable);
         } else if (hasText(query) && hasText(brandName)) {
-            productPage = productRepository.searchWithFilters(
-                    query, brandName, null, minPrice, maxPrice, pageable);
+            productPage = sortByPrice
+                    ? (sortDesc ? productRepository.searchWithFiltersPriceDesc(query, brandName, null, minPrice, maxPrice, pageable)
+                                : productRepository.searchWithFiltersPriceAsc(query, brandName, null, minPrice, maxPrice, pageable))
+                    : productRepository.searchWithFilters(query, brandName, null, minPrice, maxPrice, pageable);
         } else if (hasText(query) && hasText(categoryName)) {
-            productPage = productRepository.searchWithFilters(
-                    query, null, categoryName, minPrice, maxPrice, pageable);
+            productPage = sortByPrice
+                    ? (sortDesc ? productRepository.searchWithFiltersPriceDesc(query, null, categoryName, minPrice, maxPrice, pageable)
+                                : productRepository.searchWithFiltersPriceAsc(query, null, categoryName, minPrice, maxPrice, pageable))
+                    : productRepository.searchWithFilters(query, null, categoryName, minPrice, maxPrice, pageable);
         } else if (hasText(brandName)) {
-            productPage = productRepository.searchWithFilters(
-                    query, brandName, null, minPrice, maxPrice, pageable);
+            productPage = sortByPrice
+                    ? (sortDesc ? productRepository.searchWithFiltersPriceDesc(query, brandName, null, minPrice, maxPrice, pageable)
+                                : productRepository.searchWithFiltersPriceAsc(query, brandName, null, minPrice, maxPrice, pageable))
+                    : productRepository.searchWithFilters(query, brandName, null, minPrice, maxPrice, pageable);
         } else if (hasText(categoryName)) {
-            productPage = productRepository.searchWithFilters(
-                    query, null, categoryName, minPrice, maxPrice, pageable);
+            productPage = sortByPrice
+                    ? (sortDesc ? productRepository.searchWithFiltersPriceDesc(query, null, categoryName, minPrice, maxPrice, pageable)
+                                : productRepository.searchWithFiltersPriceAsc(query, null, categoryName, minPrice, maxPrice, pageable))
+                    : productRepository.searchWithFilters(query, null, categoryName, minPrice, maxPrice, pageable);
         } else if (hasText(query)) {
-            productPage = productRepository.searchWithFilters(
-                    query, null, null, minPrice, maxPrice, pageable);
+            productPage = sortByPrice
+                    ? (sortDesc ? productRepository.searchWithFiltersPriceDesc(query, null, null, minPrice, maxPrice, pageable)
+                                : productRepository.searchWithFiltersPriceAsc(query, null, null, minPrice, maxPrice, pageable))
+                    : productRepository.searchWithFilters(query, null, null, minPrice, maxPrice, pageable);
         } else {
             // No filters - return all products with price range
-            productPage = productRepository.findAllWithPriceRange(minPrice, maxPrice, pageable);
+            if (sortByPrice) {
+                productPage = sortDesc
+                        ? productRepository.findAllWithPriceRangeDesc(minPrice, maxPrice, pageable)
+                        : productRepository.findAllWithPriceRangeAsc(minPrice, maxPrice, pageable);
+            } else {
+                productPage = productRepository.findAllWithPriceRange(minPrice, maxPrice, pageable);
+            }
         }
 
         return productPage.map(productMapper::toProductResponse);
@@ -87,12 +111,18 @@ public class SearchService {
 
     private Pageable createPageable(int page, int size, String sortBy, String sortDirection) {
         if (sortBy == null || sortBy.isEmpty()) {
-            sortBy = "price";
+            sortBy = "id";
         }
 
         Sort.Direction direction = Sort.Direction.ASC;
         if (sortDirection != null && sortDirection.equalsIgnoreCase("desc")) {
             direction = Sort.Direction.DESC;
+        }
+
+        // Don't use "price" for sorting since it's in ProductVariant, not Product
+        // Sorting by price will be handled in the query itself
+        if ("price".equalsIgnoreCase(sortBy)) {
+            sortBy = "id";
         }
 
         return PageRequest.of(page, size, Sort.by(direction, sortBy));

@@ -3,7 +3,6 @@ package com.personal.store_api.service;
 import com.personal.store_api.dto.request.CartItemUpdateRequest;
 import com.personal.store_api.dto.request.CartRequest;
 import com.personal.store_api.dto.response.CartItemResponse;
-import com.personal.store_api.dto.response.CartResponse;
 import com.personal.store_api.dto.response.ProductVariantResponse;
 import com.personal.store_api.entity.Cart;
 import com.personal.store_api.entity.Product;
@@ -38,8 +37,6 @@ public class CartService {
     final UserRepository userRepository;
     final ProductVariantMapper productVariantMapper;
 
-    private static final BigDecimal SHIPPING_FEE = BigDecimal.valueOf(30000);
-
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -60,27 +57,13 @@ public class CartService {
     }
 
     @Transactional(readOnly = true)
-    public CartResponse getCart() {
+    public List<CartItemResponse> getCartItems() {
         User currentUser = getCurrentUser();
         List<Cart> carts = cartRepository.findAllByUser(currentUser);
 
-        List<CartItemResponse> items = carts.stream()
+        return carts.stream()
                 .map(this::toCartItemResponse)
                 .collect(Collectors.toList());
-
-        BigDecimal subtotal = items.stream()
-                .map(CartItemResponse::getSubtotal)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal total = subtotal.add(SHIPPING_FEE);
-
-        return CartResponse.builder()
-                .items(items)
-                .totalItems(items.size())
-                .subtotal(subtotal)
-                .shippingFee(SHIPPING_FEE)
-                .total(total)
-                .build();
     }
 
     @Transactional(readOnly = true)
@@ -228,20 +211,9 @@ public class CartService {
         cartRepository.deleteByUserIdAndId(currentUser.getId(), cartId);
     }
 
-    @Transactional
-    public void clearCart() {
-        User currentUser = getCurrentUser();
-        List<Cart> carts = cartRepository.findAllByUser(currentUser);
-
-        for (Cart cart : carts) {
-            cartRepository.delete(cart);
-        }
-    }
-
     private CartItemResponse toCartItemResponse(Cart cart) {
         ProductVariant variant = cart.getProductVariant();
         BigDecimal price = variant.getPrice() != null ? variant.getPrice() : BigDecimal.ZERO;
-        BigDecimal subtotal = price.multiply(BigDecimal.valueOf(cart.getQuantity()));
 
         return CartItemResponse.builder()
                 .id(cart.getId())
@@ -254,7 +226,6 @@ public class CartService {
                 .price(price)
                 .quantity(cart.getQuantity())
                 .stockQuantity(variant.getStockQuantity())
-                .subtotal(subtotal)
                 .createdAt(cart.getCreatedAt())
                 .updatedAt(cart.getUpdatedAt())
                 .build();

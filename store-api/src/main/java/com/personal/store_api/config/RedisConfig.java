@@ -1,10 +1,13 @@
 package com.personal.store_api.config;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -23,7 +26,22 @@ import java.time.Duration;
 public class RedisConfig {
 
     /**
-     * Shared ObjectMapper bean for Redis serialization.
+     * Default ObjectMapper for HTTP responses (no type info).
+     * Marked as @Primary so Spring MVC uses this one.
+     */
+    @Bean
+    @Primary
+    public ObjectMapper objectMapper() {
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        // Disable default typing for HTTP responses
+        objectMapper.disable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        return objectMapper;
+    }
+
+    /**
+     * Shared ObjectMapper bean for Redis serialization (with type info).
      */
     @Bean
     public ObjectMapper redisObjectMapper() {

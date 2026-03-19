@@ -72,6 +72,58 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category c LEFT JOIN FETCH p.brand b " +
            "LEFT JOIN FETCH p.variants v " +
+           "WHERE (:query IS NULL OR :query = '' OR p.name LIKE %:query%) " +
+           "AND (:brandName IS NULL OR :brandName = '' OR b.name = :brandName) " +
+           "AND (:categoryName IS NULL OR :categoryName = '' OR c.name = :categoryName) " +
+           "AND (v.price IS NULL OR v.price >= :minPrice) " +
+           "AND (v.price IS NULL OR v.price <= :maxPrice) " +
+           "ORDER BY v.price ASC")
+    Page<Product> searchWithFiltersPriceAsc(
+            @Param("query") String query,
+            @Param("brandName") String brandName,
+            @Param("categoryName") String categoryName,
+            @Param("minPrice") Double minPrice,
+            @Param("maxPrice") Double maxPrice,
+            Pageable pageable);
+
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category c LEFT JOIN FETCH p.brand b " +
+           "LEFT JOIN FETCH p.variants v " +
+           "WHERE (:query IS NULL OR :query = '' OR p.name LIKE %:query%) " +
+           "AND (:brandName IS NULL OR :brandName = '' OR b.name = :brandName) " +
+           "AND (:categoryName IS NULL OR :categoryName = '' OR c.name = :categoryName) " +
+           "AND (v.price IS NULL OR v.price >= :minPrice) " +
+           "AND (v.price IS NULL OR v.price <= :maxPrice) " +
+           "ORDER BY v.price DESC")
+    Page<Product> searchWithFiltersPriceDesc(
+            @Param("query") String query,
+            @Param("brandName") String brandName,
+            @Param("categoryName") String categoryName,
+            @Param("minPrice") Double minPrice,
+            @Param("maxPrice") Double maxPrice,
+            Pageable pageable);
+
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category c LEFT JOIN FETCH p.brand b " +
+           "LEFT JOIN FETCH p.variants v " +
+           "WHERE (v.price IS NULL OR v.price >= :minPrice) " +
+           "AND (v.price IS NULL OR v.price <= :maxPrice) " +
+           "ORDER BY v.price ASC")
+    Page<Product> findAllWithPriceRangeAsc(
+            @Param("minPrice") Double minPrice,
+            @Param("maxPrice") Double maxPrice,
+            Pageable pageable);
+
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category c LEFT JOIN FETCH p.brand b " +
+           "LEFT JOIN FETCH p.variants v " +
+           "WHERE (v.price IS NULL OR v.price >= :minPrice) " +
+           "AND (v.price IS NULL OR v.price <= :maxPrice) " +
+           "ORDER BY v.price DESC")
+    Page<Product> findAllWithPriceRangeDesc(
+            @Param("minPrice") Double minPrice,
+            @Param("maxPrice") Double maxPrice,
+            Pageable pageable);
+
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category c LEFT JOIN FETCH p.brand b " +
+           "LEFT JOIN FETCH p.variants v " +
            "WHERE (v.price IS NULL OR v.price >= :minPrice) " +
            "AND (v.price IS NULL OR v.price <= :maxPrice)")
     Page<Product> findAllWithPriceRange(

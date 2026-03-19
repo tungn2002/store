@@ -11,12 +11,8 @@ const Cart = ({ isLoggedIn, addToast }) => {
   const [error, setError] = useState(null);
   const [showSizeColorPopup, setShowSizeColorPopup] = useState(null);
   const [selectedSizeColor, setSelectedSizeColor] = useState({});
-  const [productVariants, setProductVariants] = useState([]); // Store all variants for selected product
-  const [cartSummary, setCartSummary] = useState({
-    subtotal: 0,
-    total: 0
-  });
-  const [updateTrigger, setUpdateTrigger] = useState(0); // Force re-render trigger
+  const [productVariants, setProductVariants] = useState([]);
+  const [updateTrigger, setUpdateTrigger] = useState(0);
 
   // Handle Stripe redirect (success/cancel) - just show toast, webhook handles status update
   useEffect(() => {
@@ -52,14 +48,10 @@ const Cart = ({ isLoggedIn, addToast }) => {
   const fetchCart = async () => {
     try {
       setLoading(true);
-      const response = await cartAPI.getCart();
+      const response = await cartAPI.getCartItems();
       if (response && response.result) {
-        const items = response.result.items || [];
+        const items = response.result || [];
         setCartItems(items);
-        setCartSummary({
-          subtotal: response.result.subtotal || 0,
-          total: response.result.subtotal || 0
-        });
         // Initialize all items as NOT selected by default (client-side only)
         const initialSelection = {};
         items.forEach(item => {
@@ -111,31 +103,20 @@ const Cart = ({ isLoggedIn, addToast }) => {
     try {
       // Call API to update quantity
       const response = await cartAPI.updateCartItem(cartId, newQuantity);
-      
+
       if (response && response.result) {
         // Update local state with API response
         setCartItems(items =>
           items.map(item =>
-            item.cartId === cartId 
-              ? { 
-                  ...item, 
-                  quantity: newQuantity, 
-                  subtotal: response.result.subtotal || (item.price * newQuantity)
-                } 
+            item.cartId === cartId
+              ? {
+                  ...item,
+                  quantity: newQuantity
+                }
               : item
           )
         );
-        
-        // Update cart summary
-        setCartSummary(prev => ({
-          subtotal: prev.subtotal - 
-            (cartItems.find(i => i.cartId === cartId)?.subtotal || 0) + 
-            (response.result.subtotal || 0),
-          total: prev.subtotal - 
-            (cartItems.find(i => i.cartId === cartId)?.subtotal || 0) + 
-            (response.result.subtotal || 0)
-        }));
-        
+
         addToast('Đã cập nhật số lượng', 'success');
       }
     } catch (err) {

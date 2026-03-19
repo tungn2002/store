@@ -58,10 +58,23 @@ export const authAPI = {
   },
 
   login: async (email, password) => {
-    const data = await apiCall('/auth/login', {
+    const token = getToken();
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
+      headers,
       body: JSON.stringify({ email, password }),
-    }, false); // Không cần auth cho login
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Đăng nhập thất bại');
+    }
+
     if (data.result && data.result.token) {
       setToken(data.result.token);
     }
@@ -183,8 +196,8 @@ export const searchAPI = {
 
 // Cart API
 export const cartAPI = {
-  getCart: async () => {
-    const data = await apiCall('/cart', {
+  getCartItems: async () => {
+    const data = await apiCall('/cart/items', {
       method: 'GET',
     }, true); // Cần auth
     return data;
@@ -222,13 +235,6 @@ export const cartAPI = {
 
   deleteCartItem: async (cartId) => {
     const data = await apiCall(`/cart/items/${cartId}`, {
-      method: 'DELETE',
-    }, true); // Cần auth
-    return data;
-  },
-
-  clearCart: async () => {
-    const data = await apiCall('/cart', {
       method: 'DELETE',
     }, true); // Cần auth
     return data;

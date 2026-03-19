@@ -4,7 +4,6 @@ import com.personal.store_api.dto.ApiResponse;
 import com.personal.store_api.dto.request.CartItemUpdateRequest;
 import com.personal.store_api.dto.request.CartRequest;
 import com.personal.store_api.dto.response.CartItemResponse;
-import com.personal.store_api.dto.response.CartResponse;
 import com.personal.store_api.dto.response.ProductVariantResponse;
 import com.personal.store_api.service.CartService;
 import jakarta.validation.Valid;
@@ -26,12 +25,12 @@ public class CartController {
     private final CartService cartService;
 
     /**
-     * Get current user's cart.
+     * Get current user's cart items.
      */
-    @GetMapping
+    @GetMapping("/items")
     @PreAuthorize("hasAuthority('cart.read')")
-    public ResponseEntity<ApiResponse<CartResponse>> getCart() {
-        CartResponse response = cartService.getCart();
+    public ResponseEntity<ApiResponse<List<CartItemResponse>>> getCartItems() {
+        List<CartItemResponse> response = cartService.getCartItems();
         return ResponseEntity.ok(buildResponse(response));
     }
 
@@ -89,16 +88,6 @@ public class CartController {
     public ResponseEntity<ApiResponse<Void>> deleteCartItem(
             @PathVariable Integer cartId) {
         cartService.deleteCartItem(cartId);
-        return ResponseEntity.ok(buildResponse());
-    }
-
-    /**
-     * Clear all items from cart.
-     */
-    @DeleteMapping
-    @PreAuthorize("hasAuthority('cart.clear')")
-    public ResponseEntity<ApiResponse<Void>> clearCart() {
-        cartService.clearCart();
         return ResponseEntity.ok(buildResponse());
     }
 
