@@ -17,7 +17,7 @@ public interface CartItemMapper {
     @Mapping(target = "variantImage", source = "productVariant.image")
     @Mapping(target = "size", source = "productVariant.size")
     @Mapping(target = "color", source = "productVariant.color")
-    @Mapping(target = "price", expression = "java(cart.getProductVariant().getPrice() != null ? cart.getProductVariant().getPrice() : BigDecimal.ZERO)")
+    @Mapping(target = "price", expression = "java(cart.getProductVariant().getPrice() != null ? cart.getProductVariant().getPrice() : java.math.BigDecimal.ZERO)")
     @Mapping(target = "quantity", source = "quantity")
     @Mapping(target = "stockQuantity", source = "productVariant.stockQuantity")
     @Mapping(target = "createdAt", source = "createdAt")
