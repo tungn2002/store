@@ -15,14 +15,12 @@ import java.util.Optional;
 public interface CartRepository extends JpaRepository<Cart, Integer> {
 
     @EntityGraph(attributePaths = {"productVariant", "productVariant.product"})
-    Optional<Cart> findByUserIdAndProductVariantId(@Param("userId") String userId, @Param("variantId") Integer variantId);
+    Optional<Cart> findByUserIdAndProductVariantId(String userId, Integer variantId);
 
-    @Query("SELECT COUNT(c) FROM Cart c WHERE c.user = :user")
-    int countByUser(@Param("user") User user);
+    int countByUser(User user);
 
     @EntityGraph(attributePaths = {"productVariant", "productVariant.product"})
-    @Query("SELECT c FROM Cart c WHERE c.user = :user ORDER BY c.createdAt DESC")
-    List<Cart> findAllByUser(@Param("user") User user);
+    List<Cart> findAllByUserOrderByCreatedAtDesc(User user);
 
-    void deleteByUserIdAndId(@Param("userId") String userId, @Param("id") Integer id);
+    void deleteByUserIdAndId(String userId,Integer id);
 }
