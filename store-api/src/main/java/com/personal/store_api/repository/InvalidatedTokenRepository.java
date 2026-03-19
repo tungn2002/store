@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 public interface InvalidatedTokenRepository extends JpaRepository<InvalidatedToken, String> {
 
     @Modifying
-    @Transactional
     @Query("DELETE FROM InvalidatedToken t WHERE t.expiryTime < CURRENT_TIMESTAMP")
     void deleteExpiredTokens();
 }

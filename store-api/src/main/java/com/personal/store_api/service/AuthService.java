@@ -24,6 +24,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.text.ParseException;
 import java.util.Date;
@@ -57,6 +58,7 @@ public class AuthService {
         return AuthenticationResponse.builder().token(token).build();
     }
 
+    @Transactional
     public void logout(LogoutRequest request) throws ParseException, JOSEException {
         var signToken = tokenProvider.verifyToken(request.getToken());
 
