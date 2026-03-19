@@ -12,7 +12,6 @@ import com.personal.store_api.entity.ProductVariant;
 import com.personal.store_api.enums.ErrorCode;
 import com.personal.store_api.exception.AppException;
 import com.personal.store_api.integration.media.CloudinaryService;
-import com.personal.store_api.integration.search.ElasticsearchService;
 import com.personal.store_api.mapper.ProductMapper;
 import com.personal.store_api.mapper.CategoryMapper;
 import com.personal.store_api.mapper.BrandMapper;
@@ -48,7 +47,6 @@ public class ProductService {
     final CloudinaryService cloudinaryService;
     final CategoryMapper categoryMapper;
     final BrandMapper brandMapper;
-    final ElasticsearchService elasticsearchService;
 
     @Transactional(readOnly = true)
     @Cacheable(value = "products", key = "#page + '-' + #size + '-' + #sortBy + '-' + #name + '-' + #categoryId + '-' + #brandId")
@@ -209,10 +207,7 @@ public class ProductService {
         }
 
         Product savedProduct = productRepository.save(product);
-        
-        // Index to Elasticsearch
-        elasticsearchService.indexProduct(savedProduct);
-        
+
         return productMapper.toProductResponse(savedProduct);
     }
 
@@ -240,10 +235,7 @@ public class ProductService {
         }
 
         Product updatedProduct = productRepository.save(product);
-        
-        // Update in Elasticsearch
-        elasticsearchService.updateProduct(updatedProduct);
-        
+
         return productMapper.toProductResponse(updatedProduct);
     }
 
@@ -254,10 +246,7 @@ public class ProductService {
                 .orElseThrow(() -> new AppException(ErrorCode.PRODUCT_NOT_FOUND));
 
         deleteOldImage(product.getImage());
-        
-        // Delete from Elasticsearch
-        elasticsearchService.deleteProduct(id);
-        
+
         productRepository.delete(product);
     }
 

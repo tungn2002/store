@@ -19,8 +19,8 @@ const CategoryView = () => {
   const [selectedBrand, setSelectedBrand] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [triggerSearch, setTriggerSearch] = useState(false); // Trigger search manually
-  
-  // Elasticsearch results
+
+  // SQL search results
   const [searchResults, setSearchResults] = useState([]);
   const [totalResults, setTotalResults] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
@@ -145,8 +145,8 @@ const CategoryView = () => {
       const fetchSuggestions = async () => {
         try {
           const response = await searchAPI.suggestProducts(searchTerm);
-          if (response.code === 1000 && response.result) {
-            setSuggestions(response.result);
+          if (response.code === 1000 && response.result && response.result.content) {
+            setSuggestions(response.result.content);
             setShowSuggestions(true);
           }
         } catch (error) {
@@ -313,11 +313,13 @@ const CategoryView = () => {
                         />
                         <div className="flex-1">
                           <div className="font-medium text-sm">{suggestion.name}</div>
-                          <div className="text-xs text-gray-500">{suggestion.categoryName} • {suggestion.brandName}</div>
+                          <div className="text-xs text-gray-500">
+                            {suggestion.category?.name || ''} • {suggestion.brand?.name || ''}
+                          </div>
                         </div>
-                        {suggestion.price && (
+                        {suggestion.variants && suggestion.variants.length > 0 && suggestion.variants[0].price && (
                           <div className="text-sm font-semibold text-red-600">
-                            {formatCurrency(suggestion.price)}
+                            {formatCurrency(suggestion.variants[0].price)}
                           </div>
                         )}
                       </div>
@@ -354,15 +356,17 @@ const CategoryView = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {searchResults.length > 0 ? (
               searchResults.map(product => (
-                <ProductCard 
-                  key={product.id} 
+                <ProductCard
+                  key={product.id}
                   product={{
-                    id: product.productId,
+                    id: product.id,
                     name: product.name,
                     img: product.image,
-                    price: product.price
-                  }} 
-                  onViewDetail={handleProductClick} 
+                    price: product.variants && product.variants.length > 0 
+                      ? product.variants[0].price 
+                      : null
+                  }}
+                  onViewDetail={handleProductClick}
                 />
               ))
             ) : (

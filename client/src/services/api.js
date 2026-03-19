@@ -153,7 +153,7 @@ export const categoryAPI = {
   },
 };
 
-// Search API (Elasticsearch)
+// Search API (SQL-based)
 export const searchAPI = {
   searchProducts: async (params) => {
     const queryParams = new URLSearchParams();
@@ -173,8 +173,8 @@ export const searchAPI = {
     return data;
   },
 
-  suggestProducts: async (prefix) => {
-    const data = await apiCall(`/search/suggest?prefix=${encodeURIComponent(prefix)}`, {
+  suggestProducts: async (prefix, limit = 10) => {
+    const data = await apiCall(`/search/suggest?prefix=${encodeURIComponent(prefix)}&limit=${limit}`, {
       method: 'GET',
     }, false); // Không cần auth
     return data;

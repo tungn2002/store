@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,24 +29,24 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
     Page<Product> findByBrandId(@Param("brandId") Integer brandId, Pageable pageable);
 
     @EntityGraph(attributePaths = {"category", "brand"})
-    Page<Product> findByCategoryIdAndBrandId(@Param("categoryId") Integer categoryId, 
-                                              @Param("brandId") Integer brandId, 
+    Page<Product> findByCategoryIdAndBrandId(@Param("categoryId") Integer categoryId,
+                                              @Param("brandId") Integer brandId,
                                               Pageable pageable);
 
     @EntityGraph(attributePaths = {"category", "brand"})
-    Page<Product> findByNameContainingIgnoreCaseAndCategoryId(@Param("name") String name, 
-                                                               @Param("categoryId") Integer categoryId, 
+    Page<Product> findByNameContainingIgnoreCaseAndCategoryId(@Param("name") String name,
+                                                               @Param("categoryId") Integer categoryId,
                                                                Pageable pageable);
 
     @EntityGraph(attributePaths = {"category", "brand"})
-    Page<Product> findByNameContainingIgnoreCaseAndBrandId(@Param("name") String name, 
-                                                            @Param("brandId") Integer brandId, 
+    Page<Product> findByNameContainingIgnoreCaseAndBrandId(@Param("name") String name,
+                                                            @Param("brandId") Integer brandId,
                                                             Pageable pageable);
 
     @EntityGraph(attributePaths = {"category", "brand"})
-    Page<Product> findByNameContainingIgnoreCaseAndCategoryIdAndBrandId(@Param("name") String name, 
-                                                                         @Param("categoryId") Integer categoryId, 
-                                                                         @Param("brandId") Integer brandId, 
+    Page<Product> findByNameContainingIgnoreCaseAndCategoryIdAndBrandId(@Param("name") String name,
+                                                                         @Param("categoryId") Integer categoryId,
+                                                                         @Param("brandId") Integer brandId,
                                                                          Pageable pageable);
 
     @Query("SELECT p FROM Product p LEFT JOIN FETCH p.variants WHERE p.id = :id")
@@ -53,4 +54,31 @@ public interface ProductRepository extends JpaRepository<Product, Integer> {
 
     @Query("SELECT p FROM Product p ORDER BY p.createdAt DESC")
     List<Product> findTop5ByOrderByCreatedAtDesc();
+
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category c LEFT JOIN FETCH p.brand b " +
+           "LEFT JOIN FETCH p.variants v " +
+           "WHERE (:query IS NULL OR :query = '' OR p.name LIKE %:query%) " +
+           "AND (:brandName IS NULL OR :brandName = '' OR b.name = :brandName) " +
+           "AND (:categoryName IS NULL OR :categoryName = '' OR c.name = :categoryName) " +
+           "AND (v.price IS NULL OR v.price >= :minPrice) " +
+           "AND (v.price IS NULL OR v.price <= :maxPrice)")
+    Page<Product> searchWithFilters(
+            @Param("query") String query,
+            @Param("brandName") String brandName,
+            @Param("categoryName") String categoryName,
+            @Param("minPrice") Double minPrice,
+            @Param("maxPrice") Double maxPrice,
+            Pageable pageable);
+
+    @Query("SELECT p FROM Product p LEFT JOIN FETCH p.category c LEFT JOIN FETCH p.brand b " +
+           "LEFT JOIN FETCH p.variants v " +
+           "WHERE (v.price IS NULL OR v.price >= :minPrice) " +
+           "AND (v.price IS NULL OR v.price <= :maxPrice)")
+    Page<Product> findAllWithPriceRange(
+            @Param("minPrice") Double minPrice,
+            @Param("maxPrice") Double maxPrice,
+            Pageable pageable);
+
+    @EntityGraph(attributePaths = {"category", "brand"})
+    Page<Product> findByNameStartingWithIgnoreCase(@Param("prefix") String prefix, Pageable pageable);
 }
