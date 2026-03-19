@@ -32,9 +32,9 @@ import java.util.Map;
 @Slf4j
 public class CategoryService {
 
-    final CategoryRepository categoryRepository;
-    final CategoryMapper categoryMapper;
-    final CloudinaryService cloudinaryService;
+    private final CategoryRepository categoryRepository;
+    private final CategoryMapper categoryMapper;
+    private final CloudinaryService cloudinaryService;
 
     @Value("${cloudinary.folder:store-api}")
     String folder;
@@ -76,7 +76,7 @@ public class CategoryService {
                 .name(request.getName())
                 .build();
 
-        if (request.getImage() != null && !request.getImage().isEmpty()) {
+        if (hasImage(request.getImage())) {
             String imageUrl = uploadImage(request.getImage());
             category.setImage(imageUrl);
         }
@@ -93,14 +93,13 @@ public class CategoryService {
 
         category.setName(request.getName());
 
-        if (request.getImage() != null && !request.getImage().isEmpty()) {
+        if (hasImage(request.getImage())) {
             deleteOldImage(category.getImage());
             String imageUrl = uploadImage(request.getImage());
             category.setImage(imageUrl);
         }
 
-        Category updatedCategory = categoryRepository.save(category);
-        return categoryMapper.toCategoryResponse(updatedCategory);
+        return categoryMapper.toCategoryResponse(category);
     }
 
     @Transactional
@@ -110,7 +109,7 @@ public class CategoryService {
                 .orElseThrow(() -> new AppException(ErrorCode.CATEGORY_NOT_FOUND));
 
         deleteOldImage(category.getImage());
-        categoryRepository.delete(category);
+        categoryRepository.deleteById(id);
     }
 
     private String uploadImage(MultipartFile file) throws IOException {
@@ -162,5 +161,9 @@ public class CategoryService {
         }
 
         return null;
+    }
+    
+    private boolean hasImage(MultipartFile file) {
+        return file != null && !file.isEmpty();
     }
 }
